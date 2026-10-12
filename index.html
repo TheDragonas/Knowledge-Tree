@@ -193,6 +193,17 @@ body.pages-left .splitter[data-for="pages"] { order: 4; } body.pages-left #stage
 .nav-tools { display: inline-flex; gap: 0; }
 #pages-head { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 body.no-side .navcol, body.no-side .splitter { display: none; }
+/* eingeklappte Spalten: schmaler Streifen, Klick klappt wieder auf */
+.nav-strip { display: none; }
+.navcol.folded { width: 28px !important; min-width: 28px; }
+.navcol.folded > :not(.nav-strip) { display: none !important; }
+.navcol.folded .nav-strip { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1; padding: 8px 0; cursor: pointer; color: var(--ink-2); user-select: none; }
+.navcol.folded .nav-strip:hover { background: var(--hover); color: var(--accent-ink); }
+.nav-strip-ic { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; }
+.nav-strip-label { writing-mode: vertical-rl; font-size: 12.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: calc(100% - 40px); }
+body.fold-groups .splitter[data-for="groups"], body.fold-pages .splitter[data-for="pages"] { display: none; }
+#nav-groups.folded { border-right: 1px solid var(--line); }
+.nav-fold { margin-left: 2px; }
 .nav-head { display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 8px 0 14px; font-size: 13px; font-weight: 600; color: var(--ink-2); flex: none; }
 .nav-add { width: 26px; height: 26px; border: 0; border-radius: 4px; background: transparent; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-2); }
 .nav-add:hover { background: var(--hover); color: var(--accent-ink); }
@@ -390,6 +401,18 @@ body.connecting-now .sock { opacity: .7; }
 .box-text blockquote { margin: 4px 0; padding: 2px 10px; border-left: 3px solid var(--accent-2); opacity: .85; font-style: italic; }
 .box-text pre { margin: 4px 0; padding: 6px 8px; background: color-mix(in srgb, currentColor 8%, transparent); border-radius: 4px; font: 10pt/1.4 Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; }
 .box-text a { color: #2f6fd0; text-decoration: underline; cursor: pointer; }
+/* Videos (z.B. aus OneNote) */
+.fimg-play, .kt-video .kt-play { position: absolute; left: 50%; top: 50%; width: 56px; height: 40px; margin: -20px 0 0 -28px; border: 0; border-radius: 10px; background: rgba(0,0,0,.62); cursor: pointer; z-index: 2; }
+.fimg-play::after, .kt-video .kt-play::after { content: ""; position: absolute; left: 22px; top: 11px; border-style: solid; border-width: 9px 0 9px 15px; border-color: transparent transparent transparent #fff; }
+.fimg-play:hover, .kt-video:hover .kt-play { background: #e62117; }
+.box-text .kt-video { position: relative; display: inline-block; cursor: pointer; line-height: 0; }
+.lightbox.vid { cursor: default; }
+.vid-box { width: min(1100px, 92vw); background: #111; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.vid-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: #eee; font: 13px var(--font-ui); }
+.vid-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vid-bar .btn { background: #333; color: #eee; border-color: #555; height: 26px; padding: 0 10px; }
+.vid-frame { position: relative; padding-top: 56.25%; }
+.vid-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 body[data-theme="dunkel"] .box-text a { color: #7fb0ff; }
 .box-text hr { border: 0; border-top: 1px solid var(--line-2); margin: 8px 0; }
 .box-text table { border-collapse: collapse; margin: 4px 0; }
@@ -669,8 +692,9 @@ iframe.ex-print { position: fixed; right: 0; bottom: 0; width: 1px; height: 1px;
 
   <main id="main">
     <aside id="nav-groups" class="navcol">
-      <div class="nav-head"><span>Notizbücher</span><button class="nav-add" id="add-group" title="Neu: Abschnitt, Abschnittsgruppe oder Notizbuch"></button></div>
+      <div class="nav-head"><span>Notizbücher</span><span class="nav-tools"><button class="nav-add" id="add-group" title="Neu: Abschnitt, Abschnittsgruppe oder Notizbuch"></button><button class="nav-add nav-fold" data-fold="groups" title="Notizbücher einklappen"></button></span></div>
       <div id="group-tree" class="navlist"></div>
+      <div class="nav-strip" data-fold="groups" title="Notizbücher ausklappen"><span class="nav-strip-ic"></span><span class="nav-strip-label">Notizbücher</span></div>
     </aside>
     <div class="splitter" data-for="groups"></div>
 
@@ -722,8 +746,9 @@ iframe.ex-print { position: fixed; right: 0; bottom: 0; width: 1px; height: 1px;
 
     <div class="splitter" data-for="pages"></div>
     <aside id="nav-pages" class="navcol">
-      <div class="nav-head"><span id="pages-head">Seiten</span><span class="nav-tools"><button class="nav-add" id="sort-pages" title="Seiten sortieren"></button><button class="nav-add" id="add-page" title="Neue Seite (Alt+N)"></button></span></div>
+      <div class="nav-head"><span id="pages-head">Seiten</span><span class="nav-tools"><button class="nav-add" id="sort-pages" title="Seiten sortieren"></button><button class="nav-add" id="add-page" title="Neue Seite (Alt+N)"></button><button class="nav-add nav-fold" data-fold="pages" title="Seitenliste einklappen"></button></span></div>
       <div id="page-list" class="navlist"></div>
+      <div class="nav-strip" data-fold="pages" title="Seitenliste ausklappen"><span class="nav-strip-ic"></span><span class="nav-strip-label" id="pages-strip-label">Seiten</span></div>
     </aside>
   </main>
 
@@ -996,6 +1021,9 @@ const ICONS = {
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
   chevDown: '<path d="m6 9 6 6 6-6"/>',
   chevRight: '<path d="m9 18 6-6-6-6"/>',
+  chevLeft: '<path d="m15 18-6-6 6-6"/>',
+  foldLeft: '<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>',
+  foldRight: '<path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/>',
   chevUp: '<path d="m18 15-6-6-6 6"/>',
   palette: '<circle cx="13.5" cy="6.5" r="1.2"/><circle cx="17.5" cy="10.5" r="1.2"/><circle cx="8.5" cy="7.5" r="1.2"/><circle cx="6.5" cy="12.5" r="1.2"/><path d="M12 2a10 10 0 0 0 0 20c1 0 1.7-.8 1.7-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-1 .8-1.7 1.7-1.7h2A5.6 5.6 0 0 0 22 11c0-5-4.5-9-10-9z"/>',
   sparkle: '<path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/>',
@@ -1206,7 +1234,7 @@ const Backend = (() => {
       setTimeout(collectGarbage, 8000);
       return {
         session: myId, groups: groups || [], pages, zustand: zustand || null, verlauf: verlauf || null,
-        info: { version: '1.4', author: 'TheDragonas', persisted },
+        info: { version: '1.5', author: 'TheDragonas', persisted },
       };
     },
 
@@ -1426,7 +1454,7 @@ const DEFAULT_PENS = [
 
 const UI_DEFAULTS = {
   currentGroup: null, currentPage: null, currentContainer: null, collapsed: {}, lastPage: {}, lastSection: {}, views: {},
-  groupsW: 230, pagesW: 220, snap: false, theme: 'hell', sidebar: true, tab: 'start', pageListSide: 'links', showTabs: false, layoutV: 2,
+  groupsW: 230, pagesW: 220, snap: false, theme: 'hell', sidebar: true, tab: 'start', pageListSide: 'links', showTabs: false, layoutV: 2, navFold: {},
   recent: [], collapsedPages: {},
   boxDefault: {}, linkDefault: { style: 'kurve', arrow: 'ende', w: 2 },
   pens: null, activePen: 0, eraserMode: 'strich', eraserSize: 14, shapeFill: null, recognize: false, penOnly: false,
@@ -2531,6 +2559,11 @@ const Sidebar = {
     $('#add-page').innerHTML = icon('pagePlus', 17);
     $('#sort-pages').innerHTML = icon('sort', 16);
     $('#add-group').addEventListener('click', (e) => this.addMenu(e.currentTarget));
+    // Spalten ein-/ausklappen: eingeklappt bleibt ein schmaler Streifen zum Wiederaufklappen
+    for (const b of $$('[data-fold]')) {
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => this.fold(b.dataset.fold));
+    }
     $('#add-page').addEventListener('click', () => Ops.newPage());
     $('#sort-pages').addEventListener('click', (e) => UI.menu([
       { head: 'Seiten sortieren' },
@@ -2862,6 +2895,7 @@ const Sidebar = {
   },
 
   renderPages() {
+    { const lab = $('#pages-strip-label'), sec = Tree.group(Store.ui.currentGroup); if (lab) lab.textContent = sec ? 'Seiten · ' + sec.name : 'Seiten'; }
     const pl = $('#page-list');
     pl.innerHTML = '';
     const s = Tree.group(Store.ui.currentGroup);
@@ -3074,11 +3108,34 @@ const Sidebar = {
       });
     }
   },
+  fold(which, on) {
+    const f = Store.ui.navFold || (Store.ui.navFold = {});
+    f[which] = on === undefined ? !f[which] : !!on;
+    UiState.saveSoon();
+    this.applyWidths();
+    Ribbon.refreshSoon();
+    if (typeof Canvas !== 'undefined') requestAnimationFrame(() => Canvas.layout && Canvas.layout());
+  },
   applyWidths() {
-    $('#nav-groups').style.width = (Store.ui.groupsW || 230) + 'px';
-    $('#nav-pages').style.width = (Store.ui.pagesW || 220) + 'px';
+    const f = Store.ui.navFold || {};
+    const right = Store.ui.pageListSide === 'rechts';
+    const set = (id, which, w) => {
+      const col = $(id);
+      col.classList.toggle('folded', !!f[which]);
+      col.style.width = f[which] ? '' : w + 'px';
+      document.body.classList.toggle('fold-' + which, !!f[which]);
+      const toRight = which === 'pages' && right;
+      const btn = col.querySelector('.nav-fold'), strip = col.querySelector('.nav-strip-ic');
+      if (btn) btn.innerHTML = icon(toRight ? 'foldRight' : 'foldLeft', 16);
+      if (strip) strip.innerHTML = icon(toRight ? 'foldLeft' : 'foldRight', 16);
+    };
+    set('#nav-groups', 'groups', Store.ui.groupsW || 230);
+    set('#nav-pages', 'pages', Store.ui.pagesW || 220);
+    const sec = Tree.group(Store.ui.currentGroup);
+    const lab = $('#pages-strip-label');
+    if (lab) lab.textContent = sec ? 'Seiten · ' + sec.name : 'Seiten';
     document.body.classList.toggle('no-side', Store.ui.sidebar === false);
-    document.body.classList.toggle('pages-left', Store.ui.pageListSide !== 'rechts');
+    document.body.classList.toggle('pages-left', !right);
   },
 };
 
@@ -3136,6 +3193,42 @@ function segIntersect(p1, p2, p3, p4) {
   return u >= 0 && u <= 1 && v >= 0 && v <= 1;
 }
 const f1 = (n) => Math.round(n * 10) / 10;
+
+/* Online-Videos (z.B. aus OneNote): Vorschaubild mit Abspielknopf, Wiedergabe im Fenster */
+const Video = {
+  embed(url) {
+    const u = String(url || '');
+    let m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{6,})/i.exec(u);
+    if (m) {
+      const t = /[?&#](?:t|start)=(\d+)/.exec(u);
+      return `https://www.youtube-nocookie.com/embed/${m[1]}?autoplay=1&rel=0${t ? '&start=' + t[1] : ''}`;
+    }
+    m = /vimeo\.com\/(?:video\/)?(\d+)/i.exec(u);
+    if (m) return `https://player.vimeo.com/video/${m[1]}?autoplay=1`;
+    return null;
+  },
+  wrapHtml(imgHtml, url, title) {
+    return `<span class="kt-video" contenteditable="false" data-video="${escapeHtml(url)}"${title ? ` data-title="${escapeHtml(title)}"` : ''}>${imgHtml}<i class="kt-play"></i></span>`;
+  },
+  play(url, title) {
+    const src = this.embed(url);
+    if (!src) { Backend.openLink(url); return; }
+    const box = el('div', { class: 'vid-box' });
+    const frame = el('iframe', { src, allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen', allowfullscreen: true, referrerpolicy: 'strict-origin-when-cross-origin', title: title || 'Video' });
+    const bar = el('div', { class: 'vid-bar' },
+      el('span', { class: 'vid-title', text: title || url }),
+      el('button', { class: 'btn small', text: 'Im Browser öffnen', onclick: () => Backend.openLink(url) }),
+      el('button', { class: 'btn small', text: 'Schliessen', onclick: () => close() }));
+    box.append(bar, el('div', { class: 'vid-frame' }, frame));
+    const lb = el('div', { class: 'lightbox vid' }, box);
+    const close = () => { lb.remove(); document.removeEventListener('keydown', onKey, true); };
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } };
+    document.addEventListener('keydown', onKey, true);
+    lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
+    document.body.append(lb);
+  },
+};
+
 /* Bilder und Anhänge im Text (z.B. aus OneNote): Quelle wird aus dem Speicher nachgeladen */
 async function downloadAttachment(name, fileName) {
   try {
@@ -3190,6 +3283,8 @@ const Canvas = {
     this.lb.addEventListener('input', e => this.onInput(e));
     this.lb.addEventListener('focusin', e => this.onFocus(e));
     this.lb.addEventListener('focusout', e => this.onBlur(e));
+    // Bilder im Text nicht per Ziehen innerhalb des Textes verschieben (das verändert die Formatierung)
+    this.lb.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('.box-text img, .box-text .kt-video')) e.preventDefault(); });
     this.lb.addEventListener('keydown', e => this.onTextKey(e));
     this.lb.addEventListener('mouseup', e => { if (Fmt.painter) setTimeout(() => Fmt.applyPainter(), 0); });
     document.addEventListener('selectionchange', () => this.onSelChange());
@@ -3348,7 +3443,9 @@ const Canvas = {
       else { wrap.style.marginRight = (cw - x - w) + 'px'; wrap.style.marginLeft = IMG_GAP + 'px'; }
       const img = el('img', { alt: '', draggable: 'false' });
       Backend.setImg(img, im.src);
-      wrap.append(img, el('div', { class: 'fimg-rs', title: 'Grösse ändern' }));
+      wrap.append(img);
+      if (im.video) { wrap.classList.add('is-video'); wrap.append(el('button', { class: 'fimg-play', type: 'button', title: 'Video abspielen' + (im.title ? ': ' + im.title : '') })); }
+      wrap.append(el('div', { class: 'fimg-rs', title: 'Grösse ändern' }));
       fl.append(spacer, wrap);
       const top = T + sp;
       bottom[side] = top + h + 4;
@@ -3863,9 +3960,14 @@ const Canvas = {
     // Anhang herunterladen
     const att = e.target.closest && e.target.closest('.box-text .kt-file');
     if (att) { e.preventDefault(); downloadAttachment(att.dataset.ktFile, att.dataset.name || att.textContent.replace(/^\W+/, '').trim()); return; }
-    // Links mit Strg+Klick öffnen
+    // Video im Text
+    const vid = e.target.closest && e.target.closest('.box-text .kt-video');
+    if (vid) { e.preventDefault(); Video.play(vid.dataset.video, vid.dataset.title); return; }
+    // Links öffnen sich mit einfachem Klick (wie in OneNote); Strg+Klick setzt nur den Cursor
     const a = e.target.closest && e.target.closest('.box-text a[href]');
-    if (a && (e.ctrlKey || e.metaKey || this.isLocked(this.box(a.closest('.box').dataset.id)))) {
+    if (a && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      const s = getSelection();
+      if (s && !s.isCollapsed && a.contains(s.anchorNode)) return; // Text im Link wird markiert
       e.preventDefault();
       Backend.openLink(a.getAttribute('href'));
     }
@@ -3942,7 +4044,17 @@ const Canvas = {
       const b = this.box(boxId);
       const im = b.images.find(i => i.id === imgEl.dataset.img);
       if (!im) return;
+      if (t.closest('.fimg-play')) { Video.play(im.video, im.title); return; }
       if (this.editing && this.editing !== boxId) this.stopEditing();
+      // Feld nur mit einem Bild (z.B. aus OneNote): das Bild ist das Objekt -> ganzes Feld verschieben
+      if (this.isPictureBox(b) && !t.closest('.fimg-rs')) {
+        if (ev.shiftKey || ev.ctrlKey) { this.toggleSel(boxId); this.selImg = null; this.startMove(ev, [...this.sel]); return; }
+        if (!this.sel.has(boxId) || this.sel.size !== 1) this.select([boxId]);
+        this.selImg = { box: boxId, img: im.id };
+        this.refreshSel(); this.render();
+        this.startMove(ev, [...this.sel]);
+        return;
+      }
       this.sel = new Set([boxId]); this.selLink = null;
       this.selImg = { box: boxId, img: im.id };
       this.refreshSel(); this.render();
@@ -3973,7 +4085,8 @@ const Canvas = {
         return;
       }
       const inText = t.closest('.box-text');
-      if (!inText || ev.altKey || this.isLocked(b)) {
+      const onInlineImg = inText && t.closest('.box-text img[data-kt-src], .box-text .kt-video') && this.editing !== boxId;
+      if (!inText || onInlineImg || ev.altKey || this.isLocked(b)) {
         ev.preventDefault();
         if (this.editing) this.stopEditing();
         if (ev.shiftKey || ev.ctrlKey) this.toggleSel(boxId);
@@ -4071,9 +4184,11 @@ const Canvas = {
           d.im.x = Math.round(clamp(d.x + dx, 0, Math.max(0, cw - Math.min(d.im.w, cw))));
           d.im.y = Math.round(Math.max(0, d.y + dy));
         } else {
-          const nw = clamp(d.w + dx, 24, cw);
+          const solo = this.isPictureBox(d.b);
+          const nw = solo ? Math.max(24, d.w + dx) : clamp(d.w + dx, 24, cw);
           d.im.w = Math.round(nw);
           d.im.h = Math.round(d.h * nw / d.w);
+          if (solo) d.b.w = d.im.w + 2 * (PADX + BORDER);
         }
         this.updateBox(d.b, this.els.get(d.b.id));
         this.layout();
@@ -4258,7 +4373,8 @@ const Canvas = {
     if (img && !t.closest('.fimg-rs')) {
       const b = this.box(img.closest('.box').dataset.id);
       const im = b && b.images.find(i => i.id === img.dataset.img);
-      if (im) Backend.imgURL(im.src).then(u => UI.lightbox(u));
+      if (im && im.video) Video.play(im.video, im.title);
+      else if (im) Backend.imgURL(im.src).then(u => UI.lightbox(u));
     }
   },
 
@@ -4360,7 +4476,104 @@ const Canvas = {
     Hist.commit('Gelöscht');
   },
 
+  /* Feld, das nur aus einem Bild besteht (kein Text) */
+  isPictureBox(b) { return !!b && b.images.length === 1 && isEmptyHtml(b.html); },
+
+  /* ---------------------------------------------------------- Gezielt auswählen (Alt+Klick, Tab) */
+  objLabel(o) {
+    if (o.kind === 'd') { const d = Canvas.page.drawings.find(x => x.id === o.id); return d && d.type === 'ink' ? (d.kind === 'marker' ? 'Textmarker' : 'Freihand') : 'Form'; }
+    if (o.kind === 'k') return 'Paket';
+    const b = this.box(o.id);
+    return b && this.isPictureBox(b) ? (b.images[0].video ? 'Video' : 'Bild') : 'Textfeld';
+  },
+  /* alle Objekte unter einem Punkt, das oberste zuerst */
+  objectsAt(w) {
+    const p = this.page, out = [];
+    if (!p) return out;
+    const tol = 6 / this.view.z;
+    const inR = (r) => r && w.x >= r.x && w.x <= r.x + r.w && w.y >= r.y && w.y <= r.y + r.h;
+    for (let i = p.drawings.length - 1; i >= 0; i--) { const d = p.drawings[i]; if (d.layer !== 'unten' && DG.hit(d, w, tol)) out.push({ kind: 'd', id: d.id }); }
+    for (const b of [...p.boxes].sort((a, c) => c.z - a.z)) if (inR(this.rects.get(b.id))) out.push({ kind: 'b', id: b.id });
+    for (const k of p.pkgs) if (inR(this.rects.get(k.id))) out.push({ kind: 'k', id: k.id });
+    for (let i = p.drawings.length - 1; i >= 0; i--) { const d = p.drawings[i]; if (d.layer === 'unten' && DG.hit(d, w, tol)) out.push({ kind: 'd', id: d.id }); }
+    return out;
+  },
+  currentObj() {
+    if (Draw.sel.size === 1 && !this.sel.size) return [...Draw.sel][0];
+    if (this.sel.size === 1 && !Draw.sel.size) return [...this.sel][0];
+    return null;
+  },
+  pickObj(o, additive) {
+    if (o.kind === 'd') {
+      if (!additive) { this.sel.clear(); this.selLink = null; this.selImg = null; this.refreshSel(); }
+      if (additive && Draw.sel.has(o.id)) { Draw.sel.delete(o.id); Draw.render(); } else Draw.select([o.id], additive);
+    } else {
+      if (!additive) Draw.clearSel(true);
+      if (additive) this.toggleSel(o.id); else this.select([o.id]);
+      const b = o.kind === 'b' && this.box(o.id);
+      if (b && this.isPictureBox(b) && this.sel.has(b.id) && this.sel.size === 1) { this.selImg = { box: b.id, img: b.images[0].id }; this.render(); }
+    }
+    Ribbon.refreshSoon();
+  },
+  /* Alt+Klick: der Reihe nach das nächste Objekt unter dem Zeiger (z.B. die Schrift vor einem Bild) */
+  cycleAt(ev, base, w) {
+    const stack = this.objectsAt(w);
+    if (!stack.length) return false;
+    ev.preventDefault();
+    this.stopEditing();
+    const i = stack.findIndex(o => o.id === this.currentObj());
+    const k = (i + 1) % stack.length;
+    const o = stack[k];
+    this.pickObj(o, false);
+    $('#sb-hint').textContent = `Alt+Klick: ${this.objLabel(o)} ausgewählt (${k + 1} von ${stack.length} an dieser Stelle) · nochmals Alt+Klick = das nächste darunter`;
+    if (o.kind === 'd') {
+      const orig = new Map(Draw.selected().map(x => [x.id, JSON.parse(JSON.stringify(x))]));
+      Draw.drag = { ...base, type: 'move', orig, boxes: [] };
+    } else this.startMove(ev, [o.id]);
+    this.capture(ev);
+    return true;
+  },
+  /* Tab / Umschalt+Tab: alle Objekte der Seite in Leserichtung durchgehen */
+  cycleAll(dir) {
+    const p = this.page;
+    if (!p) return;
+    const list = [];
+    for (const b of p.boxes) if (!isEmptyBox(p, b) && this.rects.get(b.id)) list.push({ kind: 'b', id: b.id, r: this.rects.get(b.id) });
+    for (const k of p.pkgs) if (this.rects.get(k.id)) list.push({ kind: 'k', id: k.id, r: this.rects.get(k.id) });
+    for (const d of p.drawings) list.push({ kind: 'd', id: d.id, r: DG.bbox(d) });
+    if (!list.length) return;
+    list.sort((a, c) => (Math.abs(a.r.y - c.r.y) > 12 ? a.r.y - c.r.y : a.r.x - c.r.x));
+    const i = list.findIndex(o => o.id === this.currentObj());
+    const k = i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length;
+    const o = list[k];
+    this.stopEditing();
+    this.pickObj(o, false);
+    // sichtbar machen
+    const vr = this.vp.getBoundingClientRect(), z = this.view.z;
+    const sx = o.r.x * z + this.view.x, sy = o.r.y * z + this.view.y;
+    if (sx < 0 || sy < 0 || sx + o.r.w * z > vr.width || sy + o.r.h * z > vr.height) {
+      this.view.x = vr.width / 2 - (o.r.x + o.r.w / 2) * z;
+      this.view.y = vr.height / 2 - (o.r.y + o.r.h / 2) * z;
+      this.applyView();
+    }
+    $('#sb-hint').textContent = `${this.objLabel(o)} ausgewählt (${k + 1} von ${list.length}) · Tab = nächstes · Umschalt+Tab = voriges · Pfeiltasten = verschieben`;
+  },
   nudge(dx, dy) {
+    // ausgewähltes Bild in einem Textfeld: nur das Bild verschieben
+    if (this.selImg) {
+      const b = this.box(this.selImg.box), im = b && b.images.find(i => i.id === this.selImg.img);
+      if (b && im && !this.isPictureBox(b) && !this.isLocked(b)) {
+        const cw = this.contentW(b);
+        im.x = Math.round(clamp(im.x + dx, 0, Math.max(0, cw - Math.min(im.w, cw))));
+        im.y = Math.round(Math.max(0, im.y + dy));
+        this.updateBox(b, this.els.get(b.id));
+        this.layout();
+        Hist.touchPage(this.pageId);
+        Hist.pendingLabel = 'Bild verschoben';
+        Hist.commitSoon();
+        return;
+      }
+    }
     const items = this.selectedBoxes().filter(b => !this.isLocked(b));
     if (Draw.sel.size) Draw.nudge(dx, dy);
     if (!items.length && !Draw.sel.size) return;
@@ -5042,7 +5255,7 @@ function outlinePath(pts, w, kind) {
   const n = pts.length;
   const width = (p, i) => {
     let f = 1;
-    if (kind === 'pen') f = clamp(0.35 + 1.15 * (p || 0.5), 0.3, 1.5);
+    if (kind === 'pen' || kind === 'exact') f = clamp(0.35 + 1.15 * (p || 0.5), 0.3, 1.5);
     else if (kind === 'pencil') f = clamp(0.6 + 0.6 * (p || 0.5), 0.5, 1.3);
     if (kind === 'pen' && n > 6) { const t = Math.min(1, (i + 1) / 4, (n - i) / 4); f *= 0.55 + 0.45 * t; }
     return Math.max(0.35, w * f / 2);
@@ -5239,12 +5452,19 @@ const Draw = {
 
   /* ---------------------------------------------------------- Darstellung */
   sig(d) {
-    if (d.type === 'ink') { const p = d.pts, n = p.length; return `i|${d.sharp ? 's' : ''}${d.kind}|${d.color}|${d.w}|${n}|${p[0]}|${p[1]}|${p[n - 3]}|${p[n - 2]}|${p[(n / 2 | 0) - ((n / 2 | 0) % 3)]}`; }
+    if (d.type === 'ink') { const p = d.pts, n = p.length; return `i|${d.sharp ? 's' : ''}${d.fit ? 'f' : ''}${d.np ? 'n' : ''}${d.kind}|${d.color}|${d.w}|${n}|${p[0]}|${p[1]}|${p[n - 3]}|${p[n - 2]}|${p[(n / 2 | 0) - ((n / 2 | 0) % 3)]}`; }
     return `s|${d.shape}|${d.color}|${d.w}|${d.fill}|${d.x1}|${d.y1}|${d.x2}|${d.y2}|${d.pts ? d.pts.join(',') : ''}`;
   },
   markup(d) {
     const c = d.color || '#1f1f1f', w = d.w || 2;
     if (d.type === 'ink') {
+      // aus OneNote: jeden Punkt genau übernehmen (keine Glättung, keine Verjüngung an den Enden)
+      if (d.fit && !d.sharp) {
+        const q = DG.inkPts(d);
+        if (d.kind === 'marker') return `<path class="ink-marker" d="${centerPath(q)}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+        if (d.np) return `<path${kb(c, 's')} d="${centerPath(q)}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+        return `<path${kb(c, 'f')} d="${outlinePath(q, w, 'exact')}" fill="${c}"/>`;
+      }
       const pts = d.sharp ? DG.inkPts(d) : DG.smooth(DG.inkPts(d));
       if (d.sharp) {
         const path = 'M' + pts.map(q => n1(q.x) + ',' + n1(q.y)).join('L');
@@ -5390,7 +5610,7 @@ const Draw = {
 
     // Auswahlrahmen
     const dh = t.closest && t.closest('[data-dh]');
-    if (dh && this.sel.size) {
+    if (dh && this.sel.size && !(ev.altKey && dh.dataset.dh === 'move')) {
       ev.preventDefault();
       Canvas.stopEditing();
       const orig = new Map(this.selected().map(d => [d.id, JSON.parse(JSON.stringify(d))]));
@@ -5451,8 +5671,12 @@ const Draw = {
   },
   selectDown(ev, base, w) {
     const t = ev.target;
+    // Alt+Klick: Objekte an dieser Stelle der Reihe nach auswählen (auch hinter/vor Bildern)
+    if (ev.altKey && !t.closest('.sock, .link-handle, .box-rs, .fimg-rs, .fimg-play') && Canvas.cycleAt(ev, base, w)) return true;
     if (t.closest('.box-text') && Canvas.editing && t.closest('.box')?.dataset.id === Canvas.editing) return false;
-    if (t.closest('.sock, .link-handle, .box-rs, .fimg, .pkg-head, [data-link]')) { if (!ev.shiftKey) this.clearSel(true); return false; }
+    // Schrift/Zeichnung vor einem Bild hat Vorrang vor dem Bild
+    const onImg = !!t.closest('.fimg') && !t.closest('.fimg-rs, .fimg-play');
+    if (t.closest('.sock, .link-handle, .box-rs, .fimg-rs, .fimg-play, .pkg-head, [data-link]') || (onImg && !this.hitAt(w, false, false))) { if (!ev.shiftKey && !ev.ctrlKey) this.clearSel(true); return false; }
     const inText = !!t.closest('.box-text');
     const onNode = !!t.closest('.box, .pkg');
     const d = this.hitAt(w, !onNode, inText);
@@ -6675,7 +6899,7 @@ const COMMANDS = {
       Canvas.restoreRange();
       const range = Canvas.lastRange ? Canvas.lastRange.cloneRange() : null;
       const selText = getSelection().toString();
-      const url = await UI.prompt('Link einfügen', /^https?:\/\//i.test(selText) ? selText : 'https://', { text: 'Adresse der Webseite. Im Textfeld mit Strg+Klick öffnen.', ok: 'Einfügen' });
+      const url = await UI.prompt('Link einfügen', /^https?:\/\//i.test(selText) ? selText : 'https://', { text: 'Adresse der Webseite. Im Textfeld genügt ein Klick zum Öffnen (Strg+Klick = Text bearbeiten).', ok: 'Einfügen' });
       if (!url || url === 'https://') return;
       Canvas.lastRange = range;
       Fmt.apply(() => {
@@ -6763,6 +6987,7 @@ const COMMANDS = {
   fullscreen: { run: () => App.toggleFullscreen(), active: () => document.body.classList.contains('fullscreen') },
   pageListSide: { run: (s) => { Store.ui.pageListSide = s; Sidebar.applyWidths(); UiState.saveSoon(); }, active: (s) => (Store.ui.pageListSide || 'links') === s },
   snap: { run: () => { Store.ui.snap = !Store.ui.snap; UiState.saveSoon(); UI.toast(Store.ui.snap ? 'Am Raster ausrichten: an' : 'Am Raster ausrichten: aus'); }, active: () => !!Store.ui.snap },
+  foldNav: { run: (w) => Sidebar.fold(w), active: (w) => !!(Store.ui.navFold || {})[w] },
   sidebar: { run: () => { Store.ui.sidebar = Store.ui.sidebar === false; Sidebar.applyWidths(); UiState.saveSoon(); }, active: () => Store.ui.sidebar !== false },
   theme: { run: (t) => { Store.ui.theme = t || (Store.ui.theme === 'dunkel' ? 'hell' : 'dunkel'); document.body.dataset.theme = Store.ui.theme; Canvas.renderLinks(); Canvas.applyView(); UiState.saveSoon(); }, active: (t) => Store.ui.theme === t },
 };
@@ -7485,6 +7710,23 @@ const Export = {
       if (u) img.setAttribute('src', u); else img.removeAttribute('src');
       img.removeAttribute('data-kt-src');
     }
+    // Videos: Vorschaubild öffnet das Video
+    for (const f of world.querySelectorAll('.fimg.is-video')) {
+      const bx = f.closest('.box'), b = bx && page.boxes.find(q => q.id === bx.dataset.id);
+      const im = b && b.images.find(q => q.id === f.dataset.img);
+      if (!im || !im.video) continue;
+      const a = document.createElement('a');
+      a.href = im.video; a.target = '_blank'; a.rel = 'noopener'; a.className = 'kt-vlink'; a.title = im.title || im.video;
+      f.querySelector('.fimg-play')?.remove();
+      a.append(...f.childNodes, Object.assign(document.createElement('i'), { className: 'kt-play' }));
+      f.append(a);
+    }
+    for (const v of world.querySelectorAll('.kt-video[data-video]')) {
+      const a = document.createElement('a');
+      a.href = v.dataset.video; a.target = '_blank'; a.rel = 'noopener'; a.className = 'kt-video'; a.title = v.dataset.title || v.dataset.video;
+      a.append(...v.childNodes);
+      v.replaceWith(a);
+    }
     // Anhänge als Download-Link
     for (const a of world.querySelectorAll('a.kt-file')) {
       const n = a.dataset.ktFile;
@@ -7527,6 +7769,10 @@ body.kt-export{background:#fff;color:var(--ink);margin:0;display:block}
 .kt-world .box-text,.kt-world .box-bar,.kt-world .fimg,.kt-world .pkg-head{cursor:auto}
 .kt-world .box.plain:hover{border-color:transparent}
 .kt-world .box-text a.kt-file{cursor:pointer}
+.kt-vlink{display:block;position:relative;width:100%;height:100%;line-height:0}.kt-vlink img{width:100%;height:100%}
+.kt-vlink .kt-play,a.kt-video .kt-play{position:absolute;left:50%;top:50%;width:56px;height:40px;margin:-20px 0 0 -28px;border-radius:10px;background:rgba(0,0,0,.62)}
+.kt-vlink .kt-play::after,a.kt-video .kt-play::after{content:"";position:absolute;left:22px;top:11px;border-style:solid;border-width:9px 0 9px 15px;border-color:transparent transparent transparent #fff}
+a.kt-video{position:relative;display:inline-block;line-height:0}
 .kt-wrap{position:relative;overflow:hidden}
 .kt-head{padding:22px 32px 8px}
 .kt-head h1{font:300 26px var(--font-ui);margin:0 0 4px;color:var(--ink)}
@@ -8528,7 +8774,7 @@ const ON = (() => {
   /* Tinte (nicht in [MS-ONE] beschrieben, aus echten Dateien ermittelt) */
   const INK = {
     Data: 0x20003415, Strokes: 0x24003416, Path: 0x1C00340B, Props: 0x20003409, Time: 0x1C00341D,
-    Metric: 0x1C00340A, Width: 0x1400340C, Height: 0x1400340D, Color: 0x1400340F, Highlighter: 0x08003411,
+    Metric: 0x1C00340A, Width: 0x1400340C, Height: 0x1400340D, Color: 0x1400340F, FitToCurve: 0x08003411, IgnorePressure: 0x08003410,
     Tip: 0x0C003412, RasterOp: 0x0C003413, Transparency: 0x0C003414, Kind: 0x14001D4E,
   };
   const GUID_X = '{598A6A8F-52C0-4BA0-93AF-AF357411A561}', GUID_Y = '{B53F9F75-04E0-4498-A7EE-C30DBB5A9011}';
@@ -8755,8 +9001,12 @@ const ON = (() => {
           pts.push({ x: off.x + series[ix][i] * sx, y: off.y + series[iy][i] * sy, p: Math.round(p * 100) / 100 });
         }
         const w = (this.f(pp, INK.Width) || 100) * 96 / 2540;
-        const marker = !!pp.get(INK.Highlighter) || pp.get(INK.RasterOp) === 9;
-        strokes.push({ pts, w: Math.round(w * 100) / 100, color: colorRef(pp.get(INK.Color)) || (marker ? '#ffff00' : '#000000'), marker, t0: fileTime(sp.get(INK.Time)) || 0 });
+        // Textmarker = Raster-Op 9 („MaskPen“); 0x08003411 ist NICHT Textmarker (steht auch bei normalen Stiften)
+        const marker = pp.get(INK.RasterOp) === 9;
+        let color = colorRef(pp.get(INK.Color)) || (marker ? '#ffff00' : '#000000');
+        // Weiss = „automatische“ Farbe (in OneNote auf hellem Hintergrund schwarz, im dunklen Modus weiss)
+        if (!marker && color === '#ffffff') color = '#000000';
+        strokes.push({ pts, w: Math.round(w * 100) / 100, color, marker, pressure: ip >= 0 && !pp.get(INK.IgnorePressure), t0: fileTime(sp.get(INK.Time)) || 0 });
       }
       if (!strokes.length) return null;
       if (kind !== 1) this.note('Formen aus OneNote (als Linien übernommen)');
@@ -8815,12 +9065,25 @@ const ON = (() => {
       const props = this.store.props(o);
       const fobj = this.obj(ctx.view, props.get(P.PictureContainer));
       const fb = this.store.fileBytes(fobj);
-      const w = (this.f(props, P.PictureWidth) || this.f(props, P.LayoutMaxWidth) || 0) * HALF_INCH;
-      const h = (this.f(props, P.PictureHeight) || this.f(props, P.LayoutMaxHeight) || 0) * HALF_INCH;
-      if (!fb || !fb.data) { this.note('Bilder ohne Daten'); return { missing: true, w, h, ...this.pos(props) }; }
+      // Online-Video: Bild mit Kind-Objekt 0x00060058 (Adresse 0x1C0035F3), Titel 0x1C00360A
+      let video = null, videoTitle = this.s(props, 0x1C00360A) || '';
+      for (const cid of this.list(props, P.ContentChildNodes)) {
+        const c = this.p(ctx.view, cid);
+        const url = c && this.s(c, 0x1C0035F3);
+        if (url) video = url;
+      }
+      if (video) this.note('Online-Videos (als Vorschaubild mit Abspielknopf)');
+      // Angezeigt wird die Layout-Grösse (PictureWidth ist die Grösse der Bilddatei, z.B. bei Ausdrucken 3/4 davon).
+      // Beim Video ist die Layout-Grösse die des Players – sichtbar ist das Vorschaubild.
+      const pw = this.f(props, P.PictureWidth), ph = this.f(props, P.PictureHeight);
+      const lw = this.f(props, P.LayoutMaxWidth), lh = this.f(props, P.LayoutMaxHeight);
+      const useLayout = !video && lw > 0 && lh > 0;
+      const w = ((useLayout ? lw : pw || lw) || 0) * HALF_INCH;
+      const h = ((useLayout ? lh : ph || lh) || 0) * HALF_INCH;
+      if (!fb || !fb.data) { this.note('Bilder ohne Daten'); return { missing: true, w, h, video, videoTitle, ...this.pos(props) }; }
       const type = sniff(fb.data);
       if (type === 'image/x-wmf' || type === 'image/x-emf') this.note('Bilder im Format WMF/EMF (Browser können sie nicht anzeigen)');
-      return { data: fb.data, mime: type, ext: fb.ext || '', w, h, alt: this.s(props, P.ImageAltText), name: this.s(props, P.ImageFilename), ...this.pos(props), background: !!props.get(P.IsBackground) };
+      return { data: fb.data, mime: type, ext: fb.ext || '', w, h, alt: this.s(props, P.ImageAltText), name: this.s(props, P.ImageFilename), video, videoTitle, ...this.pos(props), background: !!props.get(P.IsBackground) };
     }
     file(ctx, o) {
       const props = this.store.props(o);
@@ -9111,7 +9374,7 @@ const OneImport = {
 
   showReport(stats, plan) {
     const rows = [];
-    rows.push(`<p><b>Importiert:</b> ${stats.notebooks ? stats.notebooks + ' Notizbuch' + (stats.notebooks === 1 ? '' : 'bücher') + ', ' : ''}${stats.sections} Abschnitt${stats.sections === 1 ? '' : 'e'}, ${stats.pages} Seite${stats.pages === 1 ? '' : 'n'}, ${stats.images} Bild${stats.images === 1 ? '' : 'er'}, ${stats.files} Anhang/Anhänge.</p>`);
+    rows.push(`<p><b>Importiert:</b> ${stats.notebooks ? stats.notebooks + ' Notizbuch' + (stats.notebooks === 1 ? '' : 'bücher') + ', ' : ''}${stats.sections} Abschnitt${stats.sections === 1 ? '' : 'e'}, ${stats.pages} Seite${stats.pages === 1 ? '' : 'n'}, ${stats.images} Bild${stats.images === 1 ? '' : 'er'}${stats.videos ? `, ${stats.videos} Video${stats.videos === 1 ? '' : 's'}` : ''}, ${stats.files} Anhang/Anhänge.</p>`);
     const rep = [...plan.report].filter(([, v]) => v);
     if (rep.length) rows.push('<p><b>Angepasst oder ersetzt:</b></p><ul>' + rep.map(([k, v]) => `<li>${escapeHtml(k)}: ${v}</li>`).join('') + '</ul>');
     if (plan.errors.length) rows.push('<p style="color:var(--danger)"><b>Nicht lesbar:</b></p><ul>' + plan.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('') + '</ul>');
@@ -9159,7 +9422,9 @@ const OneImport = {
         stats.images++;
         const w = Math.round(it.w || 200), h = Math.round(it.h || 150);
         if (/^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(it.mime)) {
-          p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: w + 2 * pad, html: '', images: [{ id: uid('i'), src: name, x: 0, y: 0, w, h }], z: it.background ? 0 : z++, style: { ...onStyle }, locked: !!it.background, pkg: null });
+          const img = { id: uid('i'), src: name, x: 0, y: 0, w, h };
+          if (it.video) { img.video = it.video; if (it.videoTitle) img.title = it.videoTitle; stats.videos = (stats.videos || 0) + 1; }
+          p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: w + 2 * pad, html: '', images: [img], z: it.background ? 0 : z++, style: { ...onStyle }, locked: !!it.background, pkg: null });
         } else {
           p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: 260, html: this.fileChip(name, (it.name || 'Bild') + (it.ext && !/\.\w+$/.test(it.name || '') ? it.ext : '')), images: [], z: z++, style: { ...onStyle }, locked: false, pkg: null });
         }
@@ -9183,7 +9448,8 @@ const OneImport = {
           }
           const pts = [];
           for (const v of s.pts) pts.push(X(v.x), Y(v.y), v.p ?? 0.5);
-          if (pts.length >= 3) p.drawings.push({ id: uid('d'), type: 'ink', kind: s.marker ? 'marker' : 'pen', color, w, pts, t0: s.t0 || Date.now(), dur: 0, layer: 'oben', ...(it.shape ? { sharp: true } : {}) });
+          // fit = genau wie OneNote zeichnen (alle Punkte, keine Glättung/Verjüngung); np = ohne Druck (gleich breit)
+          if (pts.length >= 3) p.drawings.push({ id: uid('d'), type: 'ink', kind: s.marker ? 'marker' : 'pen', color, w, pts, t0: s.t0 || Date.now(), dur: 0, layer: 'oben', fit: 1, ...(s.pressure ? {} : { np: 1 }), ...(it.shape ? { sharp: true } : {}) });
         }
       }
     }
@@ -9287,7 +9553,9 @@ const OneImport = {
     const w = Math.round(c.w || 0), h = Math.round(c.h || 0);
     ctx.maxImg = Math.max(ctx.maxImg, w);
     const css = w ? `width:${w}px${h ? `;height:${h}px` : ''}` : '';
-    return `<div><img data-kt-src="${escapeHtml(name)}" alt="${escapeHtml(c.alt || '')}"${css ? ` style="${css}"` : ''}></div>`;
+    const img = `<img data-kt-src="${escapeHtml(name)}" alt="${escapeHtml(c.alt || '')}"${css ? ` style="${css}"` : ''}>`;
+    if (c.video) { stats.videos = (stats.videos || 0) + 1; return `<div>${Video.wrapHtml(img, c.video, c.videoTitle)}</div>`; }
+    return `<div>${img}</div>`;
   },
   paraHtml(p) {
     const style = (p.style || '').toLowerCase();
@@ -9715,7 +9983,7 @@ const OneWrite = (() => {
     X1C001D5D: 0x1C001D5D, X1C001E30: 0x1C001E30,
     // Tinte
     InkData: 0x20003415, InkStrokes: 0x24003416, InkPath: 0x1C00340B, InkProps: 0x20003409, InkTime: 0x1C00341D, InkGuid: 0x1C00341A,
-    InkMetric: 0x1C00340A, InkWidth: 0x1400340C, InkHeight: 0x1400340D, InkColor: 0x1400340F, InkHighlighter: 0x08003411, InkTip: 0x0C003412,
+    InkMetric: 0x1C00340A, InkWidth: 0x1400340C, InkHeight: 0x1400340D, InkColor: 0x1400340F, InkFitToCurve: 0x08003411, InkIgnorePressure: 0x08003410, InkTip: 0x0C003412,
     InkRasterOp: 0x0C003413, InkKind: 0x14001D4E, InkLang: 0x1000341B, InkX0C00341C: 0x0C00341C, InkX0C003610: 0x0C003610,
     // Inhaltsverzeichnis
     TocChildren: 0x24001CF6, TocFileName: 0x1C001D6B, TocOrder: 0x14001CB9, TocColor: 0x14001CBE, TocGuid: 0x1C001D94,
@@ -9842,6 +10110,12 @@ const OneWrite = (() => {
       props.push([P.LayoutMaxWidth, f32(im.w / HI)], [P.LayoutMaxHeight, f32(im.h / HI)], [P.PictureWidth, f32(im.w / HI)], [P.PictureHeight, f32(im.h / HI)]);
       if (im.name) props.push([P.ImageFilename, utf16z(im.name)]);
       if (im.alt) props.push([P.ImageAltText, utf16z(im.alt)]);
+      if (im.video) {
+        // wie OneNote: Bild mit Kind-Objekt 0x00060058 (Adresse), Titel am Bild
+        if (im.title) props.push([0x1C00360A, utf16z(im.title)]);
+        const v = sp.add(0x00060058, [[P.LastModifiedTime, T32], [0x1C0035F3, utf16z(im.video)], [0x140035F2, u32b(1)], [0x08003622, false], [0x0800353E, false]]);
+        props.push([P.ContentChildNodes, [v]]);
+      }
       return sp.add(J.ImageNode, props);
     };
     const oe = (content, kids, extra = []) => {
@@ -9906,13 +10180,14 @@ const OneWrite = (() => {
         for (const s of it.strokes) {
           if (!s.pts || s.pts.length < 1) continue;
           const pts = s.pts.length === 1 ? [s.pts[0], { ...s.pts[0], x: s.pts[0].x + 0.1 }] : s.pts;
-          const withP = !s.marker && pts.some(q => q.p != null);
+          const withP = !s.marker && !s.np && pts.some(q => q.p != null);
           const xs = pts.map(q => Math.round(q.x * HIMETRIC)), ys = pts.map(q => Math.round(q.y * HIMETRIC));
           const chans = [xs, ys];
           if (withP) chans.push(pts.map(q => Math.round(Math.max(0.05, Math.min(1, (q.p ?? 0.5) * 1.5)) * 32767)));
           const w = Math.max(1, (s.w || 2) * HIMETRIC);
-          const pprops = [[P.InkMetric, metric(withP)], [P.InkColor, colorRef(s.color || '#000000')], [P.InkWidth, f32(w)], [P.InkHeight, f32(w)]];
-          if (s.marker) pprops.push([P.InkHighlighter, true], [P.InkTip, 1], [P.InkRasterOp, 9]);
+          // wie OneNote: geglättet zeichnen (FitToCurve), ohne Druck-Kanal „Druck ignorieren“, Textmarker = Raster-Op 9
+          const pprops = [[P.InkMetric, metric(withP)], [P.InkFitToCurve, true], ...(withP ? [] : [[P.InkIgnorePressure, true]]), [P.InkColor, colorRef(s.color || '#000000')], [P.InkWidth, f32(w)], [P.InkHeight, f32(w)]];
+          if (s.marker) pprops.push([P.InkTip, 1], [P.InkRasterOp, 9]);
           const pp = sp.add(J.InkStrokeProperties, pprops);
           strokes.push(sp.add(J.InkStroke, [[P.InkPath, isfPath(chans)], [P.InkLang, LANG], [P.InkX0C00341C, 0], [P.InkX0C003610, 0], [P.InkGuid, guidBytes(newGuid())], [P.InkTime, fileTime(s.t0 || now)], [P.InkProps, pp]]));
         }
@@ -10116,7 +10391,8 @@ const OneWrite = (() => {
             const d0 = cur ? cur.depth : depth;
             if (cur && !cur.runs.length) cur = null; else flush();
             const r = n.getBoundingClientRect(), z = Canvas.view.z || 1;
-            paras.push({ depth: d0, image: { ...im, w: Math.max(4, r.width / z), h: Math.max(4, r.height / z), alt: n.alt || '' } });
+            const vw = n.closest('.kt-video');
+            paras.push({ depth: d0, image: { ...im, w: Math.max(4, r.width / z), h: Math.max(4, r.height / z), alt: n.alt || '', ...(vw ? { video: vw.dataset.video, title: vw.dataset.title || '' } : {}) } });
           }
           continue;
         }
@@ -10202,7 +10478,7 @@ const OneWrite = (() => {
       });
       return out;
     };
-    const ink = (pts, color, w, opts = {}) => { if (pts.length) frames.push({ pts: (opts.raw ? pts : dense(pts)).map(p => ({ x: p.x, y: p.y, p: p.p })), color: color || '#000000', w, marker: !!opts.marker, t0: opts.t0 }); };
+    const ink = (pts, color, w, opts = {}) => { if (pts.length) frames.push({ pts: (opts.raw ? pts : dense(pts)).map(p => ({ x: p.x, y: p.y, p: p.p })), color: color || '#000000', w, marker: !!opts.marker, np: !!opts.np, t0: opts.t0 }); };
     // Pakete (Rahmen + Titel)
     for (const k of page.pkgs) {
       const r = Canvas.rects.get(k.id);
@@ -10238,13 +10514,13 @@ const OneWrite = (() => {
         const data = im && await imageBytes(im.src);
         if (!data) continue;
         const fr = W(f.getBoundingClientRect());
-        items.push({ kind: 'image', x: fr.x, y: fr.y, w: fr.w, h: fr.h, ...data });
+        items.push({ kind: 'image', x: fr.x, y: fr.y, w: fr.w, h: fr.h, ...data, ...(im.video ? { video: im.video, title: im.title || '' } : {}) });
       }
     }
     // Zeichnungen
     for (const d of page.drawings) {
       const color = /^#[0-9a-f]{6}$/i.test(d.color || '') ? d.color : d.kind === 'rainbow' ? '#bf5af2' : d.kind === 'glitter' ? '#c9a227' : '#1f1f1f';
-      if (d.type === 'ink') { ink(DG.inkPts(d), color, d.w, { marker: d.kind === 'marker', t0: d.t0, raw: true }); continue; }
+      if (d.type === 'ink') { ink(DG.inkPts(d), color, d.w, { marker: d.kind === 'marker', t0: d.t0, raw: true, np: !!d.np }); continue; }
       const { lines } = DG.lines(d);
       for (const l of lines) ink(l, color, d.w, { t0: d.t0 });
       const heads = [];
@@ -10595,7 +10871,8 @@ const Ribbon = {
       G('Seite', B.dropBtn('big', icon('pageColor', 28), 'Seiten­farbe', 'Hintergrundfarbe der Seite', (a) => UI.menu([{ head: 'Seitenfarbe' }, { colors: PAGE_COLORS, action: (c) => Cmd.run('pageColor', c) }], 0, 0, { anchor: a })),
         B.dropBtn('big', icon('ruled', 28), 'Linien', 'Punkte, Karos oder Linien auf der Seite', (a) => UI.menu([{ head: 'Linien der Seite' }, ...BG_KINDS.map(([v, l, ic]) => ({ label: l, icon: ic, checked: !!Canvas.page && Canvas.page.bg === v, action: () => Cmd.run('bg', v) }))], 0, 0, { anchor: a })));
       G('Fenster', B.big('fullscreen', 'Vollbild', 'fullscreen', 'Nur die Seite anzeigen (F11)'),
-        B.col(B.small('sidebar', 'Navigation', 'sidebar', 'Notizbücher und Seitenliste anzeigen'), B.small('pageListSide', 'Seiten links', 'alignLeft', 'Seitenliste links neben der Seite', 'links'), B.small('pageListSide', 'Seiten rechts', 'alignRight', 'Seitenliste rechts (wie OneNote)', 'rechts')));
+        B.col(B.small('sidebar', 'Navigation', 'sidebar', 'Notizbücher und Seitenliste anzeigen'), B.small('pageListSide', 'Seiten links', 'alignLeft', 'Seitenliste links neben der Seite', 'links'), B.small('pageListSide', 'Seiten rechts', 'alignRight', 'Seitenliste rechts (wie OneNote)', 'rechts')),
+        B.col(B.small('foldNav', 'Notizbücher eingeklappt', 'foldLeft', 'Notizbuch-Spalte zu einem schmalen Streifen einklappen (Klick auf den Streifen klappt sie wieder auf)', 'groups'), B.small('foldNav', 'Seitenliste eingeklappt', 'foldLeft', 'Seitenliste zu einem schmalen Streifen einklappen', 'pages')));
       G('Hilfen', B.col(B.small('snap', 'Am Raster ausrichten', 'magnet')));
       G('Design', B.big('theme', 'Hell', 'sun', 'Helles Design', 'hell'), B.big('theme', 'Dunkel', 'moon', 'Dunkles Design', 'dunkel'));
     }
@@ -10885,12 +11162,12 @@ const App = {
       const one = [...e.dataTransfer.files].filter(f => OneImport.isOneNoteFile(f));
       if (one.length) OneImport.fromFiles(one);
     });
-    // Links nie im Programmfenster öffnen (Strg+Klick öffnet sie im Browser)
+    // Links nie im Programmfenster öffnen (ein Klick öffnet sie im Browser, siehe Canvas.onClick)
     document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('a[href]:not([download])')) e.preventDefault(); }, true);
     document.addEventListener('auxclick', (e) => { if (e.target.closest && e.target.closest('a[href]:not([download])')) e.preventDefault(); }, true);
     document.addEventListener('paste', (e) => this.onPaste(e));
-    window.addEventListener('pagehide', () => { Hist.flushPending(); Save.beacon(); });
-    window.addEventListener('beforeunload', () => { Hist.flushPending(); Save.beacon(); });
+    window.addEventListener('pagehide', () => { Hist.flushPending(); Save.beacon(); UiState.saveSoon.flush(); });
+    window.addEventListener('beforeunload', () => { Hist.flushPending(); Save.beacon(); UiState.saveSoon.flush(); });
   },
 
   /* ---------------------------------------------------------- Einfügen */
@@ -11029,7 +11306,8 @@ const App = {
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); Canvas.deleteSelection(); return; }
       if (e.key === 'Escape') { Canvas.clearSel(); return; }
       if (e.key === 'F2') { e.preventDefault(); if (Canvas.page) Ops.renamePage(Canvas.pageId); return; }
-      if (e.key.startsWith('Arrow') && Canvas.sel.size) {
+      if (e.key === 'Tab' && Canvas.page && !e.ctrlKey && !e.altKey && (t === document.body || t === Canvas.vp || (t.closest && t.closest('#viewport'))) && !UI.popupOpen()) { e.preventDefault(); Canvas.cycleAll(e.shiftKey ? -1 : 1); return; }
+      if (e.key.startsWith('Arrow') && (Canvas.sel.size || Draw.sel.size || Canvas.selImg)) {
         e.preventDefault();
         const s = e.shiftKey ? 10 : 1;
         Canvas.nudge(e.key === 'ArrowLeft' ? -s : e.key === 'ArrowRight' ? s : 0, e.key === 'ArrowUp' ? -s : e.key === 'ArrowDown' ? s : 0);
@@ -11059,7 +11337,6 @@ const App = {
       ['Mausrad / Umschalt + Mausrad', 'nach oben/unten / links/rechts'],
       ['Strg + Mausrad', 'zoomen'],
       ['Mittlere Maustaste / Leertaste + ziehen', 'Fläche verschieben'],
-      ['Pfeiltasten (+Umschalt)', 'Auswahl verschieben'],
       ['Entf', 'Auswahl löschen'],
       ['h', 'Knowledge Tree'],
       ['Rechtsklick halten + ziehen', 'zwei Felder/Pakete verbinden'],
@@ -11077,7 +11354,13 @@ const App = {
       ['Strg + L / E / R / J', 'links / zentriert / rechts / Blocksatz'],
       ['Strg + Umschalt + > / <', 'Schrift grösser / kleiner'],
       ['Alt + =', 'Formel einfügen (Doppelklick auf eine Formel = bearbeiten)'],
-      ['Strg + K', 'Link einfügen (Strg + Klick öffnet ihn)'],
+      ['Klick auf einen Link', 'Link öffnen (Strg + Klick = Cursor in den Link setzen)'],
+      ['h', 'Auswählen'],
+      ['Alt + Klick', 'Objekte an dieser Stelle der Reihe nach auswählen (z.B. Schrift vor einem Bild)'],
+      ['Tab / Umschalt + Tab', 'nächstes / voriges Objekt der Seite auswählen'],
+      ['Umschalt/Strg + Klick', 'Objekt zur Auswahl hinzufügen oder entfernen'],
+      ['Pfeiltasten (+Umschalt)', 'Auswahl oder ausgewähltes Bild um 1 (10) px verschieben'],
+      ['Strg + K', 'Link einfügen (Klick öffnet ihn)'],
       ['Tab / Umschalt + Tab', 'Einzug in Listen'],
       ['Esc', 'Textbearbeitung beenden'],
       ['Umschalt + Rechtsklick', 'Browser-Menü (z.B. Rechtschreibung)'],
