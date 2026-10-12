@@ -245,7 +245,8 @@ body.no-side .navcol, body.no-side .splitter { display: none; }
 
 /* ------------------------------------------------------------ Zeichenfläche */
 #stage { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); border-left: 1px solid var(--line); }
-#section-tabs { flex: none; display: flex; align-items: flex-end; gap: 3px; height: 36px; padding: 0 10px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+#section-tabs { display: none !important; }
+#section-tabs.show { flex: none; display: flex; align-items: flex-end; gap: 3px; height: 36px; padding: 0 10px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
 #section-tabs::-webkit-scrollbar { display: none; }
 .s-tab { --tc: var(--line-2); flex: none; display: inline-flex; align-items: center; gap: 6px; height: 29px; max-width: 220px; padding: 0 14px; border-radius: 7px 7px 0 0; border-top: 3px solid var(--tc);
   background: color-mix(in srgb, var(--tc) 20%, var(--chrome)); color: var(--ink); font-size: 12.5px; cursor: default; white-space: nowrap; position: relative; }
@@ -261,6 +262,7 @@ body.no-side .navcol, body.no-side .splitter { display: none; }
 .s-tab.drop-before { box-shadow: inset 3px 0 0 var(--accent); }
 .s-tab.drop-after { box-shadow: inset -3px 0 0 var(--accent); }
 #page-frame { flex: 1; display: flex; flex-direction: column; min-height: 0; background: var(--canvas); border-top: 3px solid var(--sc, var(--line-2)); }
+#stage { border-left: 0; }
 #page-head { flex: none; display: flex; align-items: flex-end; gap: 16px; padding: 12px 24px 8px; border-bottom: 1px solid var(--line); background: var(--canvas); }
 #page-title { flex: 1; min-width: 60px; border: 0; outline: 0; background: transparent; font: 300 26px/1.2 var(--font-ui); color: var(--ink); padding: 2px 0; border-bottom: 2px solid transparent; user-select: text; }
 #page-title:focus { border-bottom-color: var(--accent); }
@@ -394,6 +396,14 @@ body[data-theme="dunkel"] .box-text a { color: #7fb0ff; }
 .box-text td, .box-text th { border: 1px solid var(--line-2); padding: 3px 7px; min-width: 44px; vertical-align: top; }
 .box-text th { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 .box-text ul.checklist { list-style: none; padding-left: 4px; }
+/* aus OneNote übernommene Felder: Abstände und Zeilenhöhe wie in OneNote */
+.box.onote .box-text { line-height: normal; }
+.box.onote .box-text :is(h1, h2, h3, h4, h5, h6) { margin: 0; font-size: 11pt; font-weight: normal; line-height: normal; opacity: 1; }
+.box.onote .box-text :is(ul, ol) { margin: 0; padding-left: 24px; }
+.box.onote .box-text pre { margin: 0; padding: 0; background: none; border-radius: 0; font: 11pt/normal Consolas, "Cascadia Mono", monospace; }
+.box.onote .box-text table { margin: 0; }
+.box.onote .box-text td { padding: 2px 5px; }
+.box.onote .box-text img[data-kt-src] { max-width: none; border-radius: 0; }
 .box-text img[data-kt-src] { max-width: 100%; height: auto; display: inline-block; vertical-align: bottom; border-radius: 2px; }
 .box-text .kt-file { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; margin: 2px 0; border: 1px solid var(--line-2); border-radius: 6px; background: var(--chrome); color: var(--ink); font: 12.5px var(--font-ui); text-decoration: none; cursor: pointer; user-select: none; }
 .box-text .kt-file:hover { border-color: var(--accent); background: var(--accent-soft); }
@@ -467,7 +477,99 @@ body[data-theme="dunkel"] .box-text a { color: #7fb0ff; }
 .sw { width: 18px; height: 18px; border: 1px solid rgba(0,0,0,.14); border-radius: 2px; cursor: default; padding: 0; }
 .sw:hover { outline: 2px solid var(--accent); outline-offset: 1px; position: relative; z-index: 1; }
 .sw.none { background: linear-gradient(to top right, transparent 45%, var(--danger) 46% 54%, transparent 55%), var(--chrome-2); }
+.sw.wheel { background: radial-gradient(circle, #fff 0 18%, transparent 60%), conic-gradient(red, yellow, lime, cyan, blue, magenta, red) !important; border-radius: 50%; }
+.cw { padding: 4px 6px 6px; width: 320px; }
+.cw-main { display: flex; gap: 12px; align-items: flex-start; padding: 2px 4px; }
+.cw-wrap { position: relative; width: 176px; height: 176px; flex: none; cursor: crosshair; touch-action: none; }
+.cw-wheel { display: block; width: 176px; height: 176px; border-radius: 50%; box-shadow: 0 0 0 1px var(--line); }
+.cw-knob { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 1px 4px rgba(0,0,0,.4); pointer-events: none; }
+.cw-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.cw-prev { display: flex; height: 34px; border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+.cw-sw { flex: 1; }
+.cw-l { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-2); }
+.cw-hex { width: 76px; height: 26px; border: 1px solid var(--line-2); border-radius: 4px; padding: 0 6px; font: 12px Consolas, monospace; background: var(--chrome-2); color: var(--ink); }
+.cw-rgb { display: flex; flex-direction: column; gap: 4px; }
+.cw-num { width: 58px; height: 24px; border: 1px solid var(--line-2); border-radius: 4px; padding: 0 4px; background: var(--chrome-2); color: var(--ink); }
+.cw-brow { display: flex; align-items: center; gap: 8px; padding: 8px 4px 2px; font-size: 11.5px; color: var(--ink-2); }
+.cw-bright { flex: 1; -webkit-appearance: none; appearance: none; height: 12px; border-radius: 6px; background: linear-gradient(to right, #000, var(--bh, #fff)); box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+.cw-bright::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 1px solid #888; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.cw-bright::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 1px solid #888; }
+.cw-basics { display: flex; gap: 4px; padding: 8px 4px 0; flex-wrap: wrap; }
 .cp .mhead { padding: 6px 0 4px; }
+/* ---------- Export */
+.ex-dlg { width: min(720px, calc(100vw - 32px)) !important; }
+.ex-label { font-size: 11.5px; font-weight: 600; color: var(--ink-2); margin: 12px 0 6px; text-transform: none; }
+.ex-fmts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.ex-fmt { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px 8px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--chrome-2); color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer; }
+.ex-fmt:hover { background: var(--hover); }
+.ex-fmt.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; box-shadow: inset 0 0 0 1px var(--accent); }
+.ex-fmt-text { font-size: 12px; color: var(--ink-2); margin: 8px 2px 0; min-height: 2.6em; }
+.ex-opts { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-top: 4px; }
+.ex-opt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.ex-opt select { font: inherit; font-size: 12.5px; padding: 3px 6px; border: 1px solid var(--line-2); border-radius: 5px; background: var(--chrome-2); color: var(--ink); }
+.ex-note { font-size: 11.5px; color: var(--ink-2); background: var(--chrome); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; line-height: 1.45; }
+.ex-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.ex-presets .btn { height: 26px; padding: 0 10px; font-size: 12px; }
+.ex-tree { border: 1px solid var(--line-2); border-radius: 7px; height: min(300px, 40vh); overflow: auto; padding: 4px 0; background: var(--chrome-2); }
+.ex-row { display: flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.ex-row:hover { background: var(--hover); }
+.ex-row input { margin: 0; flex: none; }
+.ex-tw { width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-3); flex: none; }
+.ex-tw.none { visibility: hidden; }
+.ex-name { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; }
+.ex-name > span { overflow: hidden; text-overflow: ellipsis; }
+.ex-name svg { flex: none; color: var(--ink-2); }
+.ex-name b { font-weight: 600; }
+.ex-name small { color: var(--ink-3); font-size: 11px; margin-left: 4px; }
+.ex-dot { width: 10px; height: 10px; border-radius: 2px; flex: none; display: inline-block; }
+.ex-sum { font-size: 12px; color: var(--ink-2); margin: 8px 2px 0; }
+.ex-busy .dlg { width: min(380px, calc(100vw - 32px)); }
+.ex-busy-text { font-size: 12.5px; color: var(--ink-2); margin: 6px 0 10px; min-height: 1.4em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.ex-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+iframe.ex-print { position: fixed; right: 0; bottom: 0; width: 1px; height: 1px; border: 0; opacity: 0; pointer-events: none; }
+@media (max-width: 640px) { .ex-fmts { grid-template-columns: repeat(2, 1fr); } }
+
+/* ---------- Formeln */
+.kt-math { display: inline-block; padding: 0 2px; border-radius: 3px; cursor: default; vertical-align: middle; line-height: normal; }
+.kt-math math { font-size: 1.12em; font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", math, serif; }
+.kt-math.block { display: block; text-align: center; padding: 4px 0; }
+.box.editing .kt-math:hover, .kt-math:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+.fx-dlg h2 { margin-bottom: 8px; }
+.fx-tabs { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.fx-tab { border: 0; background: transparent; padding: 6px 10px; font: inherit; font-size: 12.5px; color: var(--ink-2); border-bottom: 2px solid transparent; cursor: pointer; }
+.fx-tab:hover { color: var(--ink); }
+.fx-tab.on { color: var(--accent-ink); border-bottom-color: var(--accent); font-weight: 600; }
+.fx-pane { display: flex; flex-wrap: wrap; gap: 4px; max-height: 168px; overflow: auto; padding: 2px 0 8px; }
+.fx-btn, .fx-sym, .fx-tpl { border: 1px solid var(--line); background: var(--chrome-2); color: var(--ink); border-radius: 5px; cursor: pointer; }
+.fx-btn:hover, .fx-sym:hover, .fx-tpl:hover { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.fx-btn { min-width: 46px; height: 44px; padding: 2px 6px; display: inline-flex; align-items: center; justify-content: center; }
+.fx-btn math { font-size: 13px; }
+.fx-sym { width: 32px; height: 32px; font-size: 16px; font-family: "Cambria Math", "STIX Two Math", math, serif; }
+.fx-tpl { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 10px; min-width: 120px; }
+.fx-tpl math { font-size: 13px; }
+.fx-tpl span { font-size: 10.5px; color: var(--ink-3); }
+.fx-in { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; font: 13px/1.45 Consolas, "Cascadia Mono", Menlo, monospace; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--chrome-2); color: var(--ink); }
+.fx-in:focus { outline: none; border-color: var(--accent); }
+.fx-prev { min-height: 64px; margin-top: 8px; padding: 10px; border: 1px dashed var(--line-2); border-radius: 6px; background: var(--canvas); color: var(--ink); display: flex; align-items: center; justify-content: center; overflow: auto; }
+.fx-prev math { font-size: 20px; font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", math, serif; }
+.fx-empty { color: var(--ink-3); font-size: 12px; }
+.fx-slot { color: var(--ink-3); }
+.fx-foot { display: flex; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+.fx-chk { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.fx-hint { font-size: 11px; color: var(--ink-3); flex: 1; min-width: 200px; }
+.fx-gal { width: 360px; max-height: 70vh; overflow: auto; padding: 4px; }
+.fx-gal-head { font-size: 11.5px; font-weight: 600; color: var(--ink-2); padding: 4px 6px 6px; }
+.fx-gal-grid { display: flex; flex-direction: column; gap: 2px; }
+.fx-gal-item { display: flex; flex-direction: column; align-items: stretch; gap: 2px; border: 1px solid transparent; background: transparent; border-radius: 5px; padding: 6px 8px; cursor: pointer; color: var(--ink); text-align: left; }
+.fx-gal-item:hover { background: var(--hover); border-color: var(--line); }
+.fx-gal-item math { font-size: 15px; }
+.fx-gal-name { font-size: 11px; color: var(--ink-3); }
+.fx-gal-sep { height: 1px; background: var(--line); margin: 4px 0; }
+.fx-gal-new { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; padding: 7px 8px; border-radius: 5px; font: inherit; font-size: 12.5px; color: var(--ink); cursor: pointer; }
+.fx-gal-new:hover { background: var(--hover); }
+.fx-gal-new kbd { margin-left: auto; font: 11px var(--font-ui); color: var(--ink-3); }
+
 .cp .mi { padding: 0 6px; }
 .list-pop { max-height: 360px; overflow: auto; }
 .list-pop .mi.cur { background: var(--accent-soft); }
@@ -567,7 +669,7 @@ body[data-theme="dunkel"] .box-text a { color: #7fb0ff; }
 
   <main id="main">
     <aside id="nav-groups" class="navcol">
-      <div class="nav-head"><span>Notizbücher</span><button class="nav-add" id="add-group" title="Neues Notizbuch"></button></div>
+      <div class="nav-head"><span>Notizbücher</span><button class="nav-add" id="add-group" title="Neu: Abschnitt, Abschnittsgruppe oder Notizbuch"></button></div>
       <div id="group-tree" class="navlist"></div>
     </aside>
     <div class="splitter" data-for="groups"></div>
@@ -727,6 +829,12 @@ function sanitizeHtml(html) {
       if (child.nodeType === 8) { child.remove(); continue; }
       if (child.nodeType !== 1) continue;
       const tag = child.tagName.toUpperCase();
+      if (tag === 'SPAN' && child.classList.contains('kt-math') && child.hasAttribute('data-tex') && typeof Formula !== 'undefined') {
+        const tmp = doc.createElement('div');
+        tmp.innerHTML = Formula.spanHtml(child.getAttribute('data-tex'), child.getAttribute('data-display') === '1');
+        child.replaceWith(tmp.firstChild);
+        continue;
+      }
       if (DROP_TAGS.has(tag)) { child.remove(); continue; }
       walk(child);
       if (!SAFE_TAGS.has(tag)) {
@@ -810,6 +918,10 @@ const ICONS = {
   unlink: '<path d="M15 7h2a5 5 0 0 1 0 10h-2M9 17H7A5 5 0 0 1 7 7h2"/><path d="M4 4l16 16"/>',
   calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
   hr: '<path d="M3 12h18"/><path d="M7 6h10M7 18h10" opacity=".35"/>',
+  export: '<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M20 15v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  filePdf: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 17v-4h1.3a1.2 1.2 0 0 1 0 2.4H8.5M13 13v4h.8a2 2 0 0 0 0-4zM17 13h-1.6v4M15.4 15h1.3"/>',
+  formula: '<path d="M18 5H7l6 7-6 7h11"/>',
   omega: '<path d="M4 20h5v-2.5A7 7 0 1 1 15 17.5V20h5"/>',
   table: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>',
   checklist: '<rect x="3" y="4" width="6" height="6" rx="1"/><path d="m4.5 7 1 1 2-2"/><path d="M13 7h8"/><rect x="3" y="14" width="6" height="6" rx="1"/><path d="M13 17h8"/>',
@@ -1094,7 +1206,7 @@ const Backend = (() => {
       setTimeout(collectGarbage, 8000);
       return {
         session: myId, groups: groups || [], pages, zustand: zustand || null, verlauf: verlauf || null,
-        info: { version: '1.3', author: 'TheDragonas', persisted },
+        info: { version: '1.4', author: 'TheDragonas', persisted },
       };
     },
 
@@ -1278,7 +1390,7 @@ const Backend = (() => {
     aboutHtml() {
       return `<p><b>Wo sind meine Daten?</b><br>Alles wird <b>nur in diesem Browser</b> auf diesem Gerät gespeichert (IndexedDB: Bereiche „Saves“ und „Cache“). Niemand sonst sieht deine Notizen – auch nicht, wenn die Webseite öffentlich ist.</p>
       <p id="kt-storage" style="color:var(--ink-3)">Speicher wird geprüft …</p>
-      <p><b>Wichtig:</b> Wenn du die Browserdaten löschst, sind die Notizen weg. Mach deshalb ab und zu unter <b>Datei → Backup herunterladen</b> eine Sicherung. Mit „Backup laden“ holst du sie zurück – auch auf einem anderen Computer.</p>`;
+      <p><b>Wichtig:</b> Wenn du die Browserdaten löschst, sind die Notizen weg. Mach deshalb ab und zu unter <b>Datei → Backup erstellen</b> eine Sicherung. Mit „Backup laden“ holst du sie zurück – auch auf einem anderen Computer.</p>`;
     },
   };
 })();
@@ -1314,7 +1426,7 @@ const DEFAULT_PENS = [
 
 const UI_DEFAULTS = {
   currentGroup: null, currentPage: null, currentContainer: null, collapsed: {}, lastPage: {}, lastSection: {}, views: {},
-  groupsW: 230, pagesW: 220, snap: false, theme: 'hell', sidebar: true, tab: 'start', pageListSide: 'rechts',
+  groupsW: 230, pagesW: 220, snap: false, theme: 'hell', sidebar: true, tab: 'start', pageListSide: 'links', showTabs: false, layoutV: 2,
   recent: [], collapsedPages: {},
   boxDefault: {}, linkDefault: { style: 'kurve', arrow: 'ende', w: 2 },
   pens: null, activePen: 0, eraserMode: 'strich', eraserSize: 14, shapeFill: null, recognize: false, penOnly: false,
@@ -1780,10 +1892,19 @@ const UI = {
       if (it.head) { box.append(el('div', { class: 'mhead', text: it.head })); continue; }
       if (it.colors) {
         const row = el('div', { class: 'mcolors' });
-        for (const c of it.colors) {
+        const custom = (Store.ui && Store.ui.customColors || []).filter(c => !it.colors.includes(c)).slice(0, 6);
+        for (const c of [...it.colors, ...custom]) {
           const b = el('button', { class: 'sw' + (c ? '' : ' none'), title: c || 'Keine Farbe', style: { background: c || '' } });
           b.addEventListener('click', () => { this.closePopup(); it.action(c); });
           row.append(b);
+        }
+        if (it.wheel !== false) {
+          const wb = el('button', { class: 'sw wheel', title: 'Eigene Farbe (Farbrad) …' });
+          wb.addEventListener('click', () => {
+            const r = (this._pop && this._pop.el.getBoundingClientRect()) || { left: 200, top: 150 };
+            this.colorWheel({ x: r.left, y: r.top }, it.current || null, (c) => it.action(c));
+          });
+          row.append(wb);
         }
         box.append(row);
         continue;
@@ -1829,14 +1950,121 @@ const UI = {
       for (const c of STANDARD_COLORS) g2.append(el('button', { class: 'sw', title: c, style: { background: c }, onclick: () => pick(c) }));
       box.append(g2);
     }
+    const custom = (Store.ui && Store.ui.customColors) || [];
+    if (custom.length) {
+      box.append(el('div', { class: 'mhead', text: 'Eigene Farben' }));
+      const g3 = el('div', { class: 'cp-grid' });
+      for (const c of custom) g3.append(el('button', { class: 'sw', title: c, style: { background: c }, onclick: () => pick(c) }));
+      box.append(g3);
+    }
     const more = el('div', { class: 'mi', style: { marginTop: '6px' } });
-    more.innerHTML = `<span class="mi-ic">${icon('palette', 15)}</span><span class="mi-label">Weitere Farben …</span>`;
-    const inp = el('input', { type: 'color', style: { position: 'absolute', opacity: 0, width: '1px', height: '1px', pointerEvents: 'none' } });
-    more.append(inp);
-    more.addEventListener('click', () => { UI._nativeDialog = true; inp.click(); });
-    inp.addEventListener('change', () => { UI._nativeDialog = false; pick(inp.value); });
+    more.innerHTML = `<span class="mi-ic"><span class="sw wheel" style="display:inline-block;width:15px;height:15px"></span></span><span class="mi-label">Weitere Farben (Farbrad) …</span>`;
+    more.addEventListener('click', () => this.colorWheel(anchor, opts.current || custom[0] || '#3a7bd5', (c) => onPick(c)));
     box.append(more);
     this.showPopup(box, 0, 0, { anchor });
+  },
+
+  /* ---------------------------------------------------------- Farbrad (eigene Farben) */
+  colorWheel(anchor, initial, onPick, opts = {}) {
+    const hex2rgb = (h) => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); const n = m ? parseInt(m[1], 16) : 0x3a7bd5; return [n >> 16, (n >> 8) & 255, n & 255]; };
+    const rgb2hex = (r, g, b) => '#' + [r, g, b].map(v => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('');
+    const rgb2hsv = (r, g, b) => {
+      r /= 255; g /= 255; b /= 255;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+      let h = 0;
+      if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return [(h * 60 + 360) % 360, mx ? d / mx : 0, mx];
+    };
+    const hsv2rgb = (h, s, v) => {
+      const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+      const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+      return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+    };
+    let [h, s, v] = rgb2hsv(...hex2rgb(initial));
+    const S = 176, R = S / 2;
+    const box = el('div', { class: 'cw' });
+    const wheel = el('canvas', { width: S, height: S, class: 'cw-wheel' });
+    const knob = el('div', { class: 'cw-knob' });
+    const wrap = el('div', { class: 'cw-wrap' }, wheel, knob);
+    const bright = el('input', { type: 'range', min: 0, max: 100, class: 'cw-bright', title: 'Helligkeit' });
+    const prevOld = el('span', { class: 'cw-sw', title: 'Bisher' }), prevNew = el('span', { class: 'cw-sw', title: 'Neu' });
+    const hexIn = el('input', { type: 'text', class: 'cw-hex', spellcheck: 'false', maxlength: 7 });
+    const rgbIn = ['R', 'G', 'B'].map(l => el('input', { type: 'number', min: 0, max: 255, class: 'cw-num', title: l }));
+    prevOld.style.background = initial || 'transparent';
+    const draw = () => {
+      const ctx = wheel.getContext('2d');
+      const img = ctx.createImageData(S, S);
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const dx = x - R + 0.5, dy = y - R + 0.5, d = Math.hypot(dx, dy);
+        const i = (y * S + x) * 4;
+        if (d > R) { img.data[i + 3] = 0; continue; }
+        const hh = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+        const [r, g, b] = hsv2rgb(hh, Math.min(1, d / R), v);
+        img.data[i] = r; img.data[i + 1] = g; img.data[i + 2] = b;
+        img.data[i + 3] = d > R - 1 ? Math.round((R - d) * 255) : 255;
+      }
+      ctx.putImageData(img, 0, 0);
+    };
+    const sync = (from) => {
+      const [r, g, b] = hsv2rgb(h, s, v);
+      const hx = rgb2hex(r, g, b);
+      prevNew.style.background = hx;
+      if (from !== 'hex') hexIn.value = hx.toUpperCase();
+      if (from !== 'rgb') [r, g, b].forEach((c, i) => { rgbIn[i].value = Math.round(c); });
+      if (from !== 'bright') bright.value = Math.round(v * 100);
+      const a = h * Math.PI / 180;
+      knob.style.left = (R + Math.cos(a) * s * R) + 'px';
+      knob.style.top = (R + Math.sin(a) * s * R) + 'px';
+      knob.style.background = hx;
+      bright.style.setProperty('--bh', rgb2hex(...hsv2rgb(h, s, 1)));
+    };
+    let dragging = false;
+    const at = (e) => {
+      const r = wheel.getBoundingClientRect();
+      const dx = e.clientX - r.left - R, dy = e.clientY - r.top - R;
+      h = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+      s = Math.min(1, Math.hypot(dx, dy) / R);
+      if (v < 0.05) { v = 1; draw(); }
+      sync();
+    };
+    wrap.addEventListener('pointerdown', (e) => { dragging = true; wrap.setPointerCapture(e.pointerId); at(e); });
+    wrap.addEventListener('pointermove', (e) => { if (dragging) at(e); });
+    wrap.addEventListener('pointerup', () => { dragging = false; });
+    bright.addEventListener('input', () => { v = bright.value / 100; draw(); sync('bright'); });
+    hexIn.addEventListener('input', () => { const m = /^#?([0-9a-f]{6})$/i.exec(hexIn.value.trim()); if (m) { [h, s, v] = rgb2hsv(...hex2rgb('#' + m[1])); draw(); sync('hex'); } });
+    rgbIn.forEach(inp => inp.addEventListener('input', () => { const c = rgbIn.map(x => clamp(+x.value || 0, 0, 255)); [h, s, v] = rgb2hsv(...c); draw(); sync('rgb'); }));
+    for (const inp of [hexIn, ...rgbIn]) inp.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      // Enter nicht an das Textfeld weiterreichen (sonst ersetzt es den markierten Text)
+      if (e.key === 'Enter') { e.preventDefault(); setTimeout(ok, 0); }
+      if (e.key === 'Escape') { e.preventDefault(); this.closePopup(); }
+    });
+    const ok = () => {
+      const hx = rgb2hex(...hsv2rgb(h, s, v));
+      if (Store.ui) { Store.ui.customColors = [hx, ...(Store.ui.customColors || []).filter(c => c !== hx)].slice(0, 10); if (typeof UiState !== 'undefined') UiState.saveSoon(); }
+      this.closePopup();
+      onPick(hx);
+    };
+    const basics = el('div', { class: 'cw-basics' });
+    for (const c of ['#000000', '#7f7f7f', '#ffffff', '#c00000', '#ff0000', '#ffc000', '#ffff00', '#92d050', '#00b050', '#00b0f0', '#0070c0', '#7030a0']) {
+      basics.append(el('button', { class: 'sw', title: c, style: { background: c }, onclick: () => { [h, s, v] = rgb2hsv(...hex2rgb(c)); draw(); sync(); } }));
+    }
+    box.append(
+      el('div', { class: 'mhead', text: opts.title || 'Farbe wählen' }),
+      el('div', { class: 'cw-main' }, wrap, el('div', { class: 'cw-side' },
+        el('div', { class: 'cw-prev' }, prevOld, prevNew),
+        el('label', { class: 'cw-l' }, 'Hex', hexIn),
+        el('div', { class: 'cw-rgb' }, ...rgbIn.map((x, i) => el('label', { class: 'cw-l' }, 'RGB'[i], x))))),
+      el('div', { class: 'cw-brow' }, el('span', { text: 'Helligkeit' }), bright),
+      basics,
+      el('div', { class: 'dlg-btns', style: { marginTop: '8px' } },
+        el('button', { class: 'btn', text: 'Abbrechen', onclick: () => this.closePopup() }),
+        el('button', { class: 'btn primary', text: 'Übernehmen', onclick: ok })));
+    draw();
+    sync();
+    if (anchor && anchor.nodeType) this.showPopup(box, 0, 0, { anchor });
+    else this.showPopup(box, (anchor && anchor.x) || 200, (anchor && anchor.y) || 150);
+    setTimeout(() => hexIn.select(), 20);
   },
 
   /* ---------------------------------------------------------- Dialoge */
@@ -1861,7 +2089,7 @@ const UI = {
       if (opts.text) d.append(el('p', { text: opts.text }));
       const inp = el('input', { type: 'text', value, placeholder: opts.placeholder || '' });
       inp.value = value;
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter') close(inp.value); });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); close(inp.value); } });
       d.append(inp);
       d.append(el('div', { class: 'dlg-btns' },
         el('button', { class: 'btn', text: 'Abbrechen', onclick: () => close(null) }),
@@ -2302,7 +2530,7 @@ const Sidebar = {
     $('#add-group').innerHTML = icon('bookPlus', 17);
     $('#add-page').innerHTML = icon('pagePlus', 17);
     $('#sort-pages').innerHTML = icon('sort', 16);
-    $('#add-group').addEventListener('click', () => Ops.newNotebook());
+    $('#add-group').addEventListener('click', (e) => this.addMenu(e.currentTarget));
     $('#add-page').addEventListener('click', () => Ops.newPage());
     $('#sort-pages').addEventListener('click', (e) => UI.menu([
       { head: 'Seiten sortieren' },
@@ -2333,6 +2561,9 @@ const Sidebar = {
         UI.menu([
           { label: 'Neues Notizbuch', icon: 'bookPlus', action: () => Ops.newNotebook() },
           { label: 'Geschlossenes Notizbuch öffnen …', icon: 'book', action: () => Ops.openNotebookMenu({ x: e.clientX, y: e.clientY }) },
+          '-',
+          { label: 'Alle ausklappen', icon: 'chevDown', action: () => this.collapseAll(false) },
+          { label: 'Alle einklappen', icon: 'chevRight', action: () => this.collapseAll(true) },
         ], e.clientX, e.clientY);
         return;
       }
@@ -2406,6 +2637,12 @@ const Sidebar = {
     this.initSplitters();
   },
 
+  collapseAll(on) {
+    for (const { g } of Tree.all()) if (g.groups.length) { if (on) Store.ui.collapsed[g.id] = true; else delete Store.ui.collapsed[g.id]; }
+    if (on && Store.ui.currentGroup) for (const anc of Tree.path(Store.ui.currentGroup).slice(0, -1)) delete Store.ui.collapsed[anc.id];
+    UiState.saveSoon();
+    this.renderTree();
+  },
   isDouble(key) {
     const now = Date.now();
     const hit = this._lastClick && this._lastClick.key === key && now - this._lastClick.t < 450;
@@ -2461,13 +2698,14 @@ const Sidebar = {
     const colorItems = [{ head: 'Farbe' }, { colors: GROUP_COLORS, action: (c) => Ops.setNodeColor(id, c) }];
     let items;
     if (g.kind === 'quick') {
-      items = [{ label: 'Neue Schnellnotiz', icon: 'bolt', key: 'Alt+Umsch+N', action: () => Ops.quickNote() }];
+      items = [{ label: 'Neue Schnellnotiz', icon: 'bolt', key: 'Alt+Umsch+N', action: () => Ops.quickNote() }, '-', { label: 'Schnellnotizen exportieren …', icon: 'download', action: () => Export.show({ group: id }) }];
     } else if (g.kind === 'section') {
       items = [
         { label: 'Neue Seite', icon: 'pagePlus', action: () => Ops.newPage(id) },
         '-',
         { label: 'Umbenennen', icon: 'pencil', key: 'Doppelklick', action: () => Ops.renameNode(id) },
         ...colorItems, '-',
+        { label: 'Abschnitt exportieren …', icon: 'download', action: () => Export.show({ group: id }) },
         { label: 'Abschnitt löschen', icon: 'trash', danger: true, action: () => Ops.deleteNode(id) },
       ];
     } else {
@@ -2478,7 +2716,7 @@ const Sidebar = {
         { label: 'Umbenennen', icon: 'pencil', key: 'Doppelklick', action: () => Ops.renameNode(id) },
         ...colorItems, '-',
         g.kind === 'notebook' ? { label: 'Notizbuch schliessen', icon: 'x', action: () => Ops.closeNotebook(id) } : null,
-        g.kind === 'notebook' && Backend.backup ? { label: 'Notizbuch exportieren …', icon: 'download', action: () => App.exportNotebook(id) } : null,
+        { label: KIND_NAMES[g.kind] + ' exportieren …', icon: 'download', action: () => Export.show({ group: id }) },
         { label: KIND_NAMES[g.kind] + ' löschen', icon: 'trash', danger: true, action: () => Ops.deleteNode(id) },
       ];
     }
@@ -2509,6 +2747,7 @@ const Sidebar = {
       { label: 'Verschieben nach …', icon: 'folder', action: () => Ops.movePagesDialog(ids) },
       one && Backend.versionList ? { label: 'Seitenversionen …', icon: 'history', action: () => App.showVersions(one) } : null,
       one ? { label: 'Datum ändern …', icon: 'calendar', action: () => Ops.editCreated(one) } : null,
+      { label: ids.length === 1 ? 'Exportieren …' : `${ids.length} Seiten exportieren …`, icon: 'download', action: () => Export.show({ pages: ids }) },
       '-',
       { label: ids.length === 1 ? 'Seite löschen' : `${ids.length} Seiten löschen`, icon: 'trash', danger: true, key: 'Entf', action: () => Ops.deletePages(ids) },
     ], x, y);
@@ -2586,6 +2825,7 @@ const Sidebar = {
 
   /* Register über der Seite: Geschwister des aktuellen Abschnitts */
   renderTabs() {
+    if (!Store.ui.showTabs) return; // Layout wie zu Beginn: alles links, keine Register oben
     const tabs = $('#section-tabs');
     tabs.innerHTML = '';
     const cur = Tree.group(Store.ui.currentGroup);
@@ -2823,7 +3063,7 @@ const Sidebar = {
         const isGroups = sp.dataset.for === 'groups';
         const target = isGroups ? $('#nav-groups') : $('#nav-pages');
         const key = isGroups ? 'groupsW' : 'pagesW';
-        const dir = (!isGroups && Store.ui.pageListSide !== 'links') ? -1 : 1;
+        const dir = (!isGroups && Store.ui.pageListSide === 'rechts') ? -1 : 1;
         const w0 = target.offsetWidth, x0 = e.clientX;
         sp.classList.add('drag');
         sp.setPointerCapture(e.pointerId);
@@ -2838,7 +3078,7 @@ const Sidebar = {
     $('#nav-groups').style.width = (Store.ui.groupsW || 230) + 'px';
     $('#nav-pages').style.width = (Store.ui.pagesW || 220) + 'px';
     document.body.classList.toggle('no-side', Store.ui.sidebar === false);
-    document.body.classList.toggle('pages-left', Store.ui.pageListSide === 'links');
+    document.body.classList.toggle('pages-left', Store.ui.pageListSide !== 'rechts');
   },
 };
 
@@ -2909,6 +3149,8 @@ async function downloadAttachment(name, fileName) {
 }
 function hydrateBox(t) {
   for (const im of t.querySelectorAll('img[data-kt-src]')) Backend.setImg(im, im.dataset.ktSrc);
+  // Formeln immer aus dem gespeicherten Quelltext neu aufbauen
+  if (typeof Formula !== 'undefined') for (const m of t.querySelectorAll('.kt-math[data-tex]')) m.innerHTML = Formula.toMathML(m.dataset.tex, m.dataset.display === '1');
 }
 /* HTML eines Textfelds ohne sitzungsgebundene Bildadressen */
 function boxHtml(t) {
@@ -3072,6 +3314,7 @@ const Canvas = {
     e.classList.toggle('sel', this.sel.has(b.id));
     const st = b.style || {};
     e.classList.toggle('plain', st.bg === 'transparent');
+    e.classList.toggle('onote', !!st.on);
     e.style.background = st.bg && st.bg !== 'transparent' ? st.bg : '';
     e.style.borderColor = st.border || '';
     const t = e.querySelector('.box-text');
@@ -4000,6 +4243,12 @@ const Canvas = {
       this.renderLinks();
       Hist.touchPage(this.pageId);
       Hist.commit(handle.dataset.h === 'm' ? 'Linie zurückgesetzt' : 'Ansatzpunkt automatisch');
+      return;
+    }
+    const fx = t.closest('.box-text .kt-math');
+    if (fx) {
+      const fb = this.box(fx.closest('.box').dataset.id);
+      if (fb && !this.isLocked(fb)) { ev.preventDefault(); Formula.open(fx); }
       return;
     }
     const linkId = t.closest('[data-link]')?.dataset.link;
@@ -5828,14 +6077,8 @@ const Draw = {
         b.addEventListener('click', () => { pen.color = c; UI.closePopup(); apply(); });
         row.append(b);
       }
-      const more = el('button', { class: 'sw more', title: 'Weitere Farben …', text: '…' });
-      more.addEventListener('click', () => {
-        const inp = el('input', { type: 'color', value: pen.color, style: { position: 'fixed', left: '-100px' } });
-        document.body.append(inp);
-        inp.addEventListener('input', () => { pen.color = inp.value; apply(); });
-        inp.addEventListener('change', () => inp.remove());
-        inp.click();
-      });
+      const more = el('button', { class: 'sw wheel', title: 'Eigene Farbe (Farbrad) …' });
+      more.addEventListener('click', () => UI.colorWheel(anchor, pen.color, (c) => { pen.color = c; apply(); }, { title: 'Stiftfarbe' }));
       row.append(more);
       box.append(row);
     }
@@ -6364,6 +6607,7 @@ const COMMANDS = {
   goBack: { run: () => App.goBack(), enabled: () => App.nav.back.some(id => Store.pages[id]) },
   goForward: { run: () => App.goForward(), enabled: () => App.nav.fwd.some(id => Store.pages[id]) },
   exportHtml: { run: () => exportPageHtml(), enabled: hasPage },
+  exportDlg: { run: () => Export.show() },
   backup: { run: async () => { await Save.flushAll(); try { UI.toast(await Backend.backup(), 3500); } catch (e) { UI.toast('Backup fehlgeschlagen: ' + e.message); } } },
   restore: { run: () => App.restoreBackup() },
   oneImport: { run: () => OneImport.start() },
@@ -6443,6 +6687,7 @@ const COMMANDS = {
   unlink: { run: () => Fmt.apply(() => Fmt.exec('unlink'), 'Link entfernt'), enabled: inEdit },
   insertDate: { run: (withTime) => Fmt.apply(() => Fmt.exec('insertText', new Date().toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' }) + (withTime ? ', ' + new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : '')), 'Datum eingefügt'), enabled: inEdit },
   insertSymbol: { run: (ch) => Fmt.apply(() => Fmt.exec('insertText', ch), 'Symbol eingefügt'), enabled: inEdit },
+  insertFormula: { run: (tex) => Formula.open(null, tex), enabled: hasPage },
   insertHr: { run: () => Fmt.apply(() => Fmt.exec('insertHTML', '<hr><div><br></div>'), 'Trennlinie'), enabled: inEdit },
 
   group: { run: () => Canvas.group(), enabled: () => Canvas.selectedBoxes().length > 1 },
@@ -6516,7 +6761,7 @@ const COMMANDS = {
     enabled: hasPage,
   },
   fullscreen: { run: () => App.toggleFullscreen(), active: () => document.body.classList.contains('fullscreen') },
-  pageListSide: { run: (s) => { Store.ui.pageListSide = s; Sidebar.applyWidths(); UiState.saveSoon(); }, active: (s) => (Store.ui.pageListSide || 'rechts') === s },
+  pageListSide: { run: (s) => { Store.ui.pageListSide = s; Sidebar.applyWidths(); UiState.saveSoon(); }, active: (s) => (Store.ui.pageListSide || 'links') === s },
   snap: { run: () => { Store.ui.snap = !Store.ui.snap; UiState.saveSoon(); UI.toast(Store.ui.snap ? 'Am Raster ausrichten: an' : 'Am Raster ausrichten: aus'); }, active: () => !!Store.ui.snap },
   sidebar: { run: () => { Store.ui.sidebar = Store.ui.sidebar === false; Sidebar.applyWidths(); UiState.saveSoon(); }, active: () => Store.ui.sidebar !== false },
   theme: { run: (t) => { Store.ui.theme = t || (Store.ui.theme === 'dunkel' ? 'hell' : 'dunkel'); document.body.dataset.theme = Store.ui.theme; Canvas.renderLinks(); Canvas.applyView(); UiState.saveSoon(); }, active: (t) => Store.ui.theme === t },
@@ -6548,6 +6793,841 @@ const Cmd = {
   },
   enabled(name) { const c = COMMANDS[name]; return !c || !c.enabled || c.enabled(); },
   active(name, arg) { const c = COMMANDS[name]; return !!(c && c.active && c.active(arg)); },
+};
+
+</script>
+<script>
+/* ---- js/formula.js ---- */
+'use strict';
+/* Formeln wie in Office: Eingabe mit Bausteinen und Symbolen (LaTeX-ähnlich), Anzeige als MathML.
+ * Im Textfeld: <span class="kt-math" contenteditable="false" data-tex="…"><math>…</math></span> */
+
+const MATH_SYMBOLS = {
+  alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', varepsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ', vartheta: 'ϑ', iota: 'ι', kappa: 'κ',
+  lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', pi: 'π', varpi: 'ϖ', rho: 'ρ', sigma: 'σ', varsigma: 'ς', tau: 'τ', upsilon: 'υ', phi: 'φ', varphi: 'φ',
+  chi: 'χ', psi: 'ψ', omega: 'ω', Gamma: 'Γ', Delta: 'Δ', Theta: 'Θ', Lambda: 'Λ', Xi: 'Ξ', Pi: 'Π', Sigma: 'Σ', Upsilon: 'Υ', Phi: 'Φ', Psi: 'Ψ', Omega: 'Ω',
+  infty: '∞', partial: '∂', nabla: '∇', hbar: 'ℏ', ell: 'ℓ', emptyset: '∅', aleph: 'ℵ', Re: 'ℜ', Im: 'ℑ', degree: '°', prime: '′',
+  N: 'ℕ', Z: 'ℤ', Q: 'ℚ', R: 'ℝ', C: 'ℂ', square: '□',
+};
+const MATH_OPS = {
+  pm: '±', mp: '∓', times: '×', div: '÷', cdot: '·', ast: '∗', circ: '∘', bullet: '•', leq: '≤', le: '≤', geq: '≥', ge: '≥', neq: '≠', ne: '≠',
+  approx: '≈', equiv: '≡', sim: '∼', simeq: '≃', cong: '≅', propto: '∝', ll: '≪', gg: '≫', in: '∈', notin: '∉', ni: '∋', subset: '⊂', supset: '⊃',
+  subseteq: '⊆', supseteq: '⊇', cup: '∪', cap: '∩', setminus: '∖', forall: '∀', exists: '∃', neg: '¬', land: '∧', lor: '∨', wedge: '∧', vee: '∨',
+  to: '→', rightarrow: '→', leftarrow: '←', leftrightarrow: '↔', Rightarrow: '⇒', Leftarrow: '⇐', Leftrightarrow: '⇔', mapsto: '↦', implies: '⇒', iff: '⇔',
+  uparrow: '↑', downarrow: '↓', perp: '⊥', parallel: '∥', angle: '∠', triangle: '△', ldots: '…', cdots: '⋯', vdots: '⋮', ddots: '⋱', dots: '…',
+  langle: '⟨', rangle: '⟩', lfloor: '⌊', rfloor: '⌋', lceil: '⌈', rceil: '⌉', mid: '∣', vert: '|', Vert: '‖', colon: ':', therefore: '∴', because: '∵',
+};
+const MATH_BIG = { sum: '∑', prod: '∏', coprod: '∐', int: '∫', iint: '∬', iiint: '∭', oint: '∮', bigcup: '⋃', bigcap: '⋂' };
+const MATH_FUNCS = ['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'arcsin', 'arccos', 'arctan', 'sinh', 'cosh', 'tanh', 'log', 'ln', 'lg', 'exp', 'lim', 'max', 'min', 'sup', 'inf', 'det', 'dim', 'ker', 'deg', 'gcd', 'arg', 'mod'];
+const MATH_ACCENTS = { vec: '→', bar: '¯', overline: '¯', hat: '^', widehat: '^', tilde: '~', dot: '˙', ddot: '¨', overrightarrow: '→' };
+
+const Formula = {
+  /* ---------------------------------------------------------- LaTeX -> MathML */
+  toMathML(tex, display) {
+    let i = 0;
+    const s = String(tex || '');
+    let fnFlag = false;
+    const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const peek = () => s[i];
+    const skipWs = () => { while (i < s.length && /\s/.test(s[i])) i++; };
+    const readCmd = () => { // nach dem Backslash
+      let n = '';
+      if (/[a-zA-Z]/.test(s[i])) { while (i < s.length && /[a-zA-Z]/.test(s[i])) n += s[i++]; }
+      else n = s[i++] || '';
+      return n;
+    };
+    const group = () => { // {…} oder ein einzelnes Element
+      skipWs();
+      if (peek() === '{') { i++; const r = expr('}'); if (peek() === '}') i++; return `<mrow>${r}</mrow>`; }
+      return atom() || '<mrow></mrow>';
+    };
+    const rawGroup = () => {
+      skipWs();
+      if (peek() !== '{') { const c = s[i++] || ''; return c; }
+      i++;
+      let depth = 1, out = '';
+      while (i < s.length && depth) { const c = s[i++]; if (c === '{') depth++; else if (c === '}') { depth--; if (!depth) break; } out += c; }
+      return out;
+    };
+    const optArg = () => {
+      skipWs();
+      if (peek() !== '[') return null;
+      i++;
+      const r = expr(']');
+      if (peek() === ']') i++;
+      return `<mrow>${r}</mrow>`;
+    };
+    const fence = (d) => {
+      if (d === '.' || !d) return '';
+      const map = { '\\{': '{', '\\}': '}', '\\langle': '⟨', '\\rangle': '⟩', '\\|': '‖', '\\vert': '|', '\\lfloor': '⌊', '\\rfloor': '⌋', '\\lceil': '⌈', '\\rceil': '⌉' };
+      return `<mo fence="true" stretchy="true">${esc(map[d] || d)}</mo>`;
+    };
+    const readDelim = () => {
+      skipWs();
+      if (peek() === '\\') { i++; const n = readCmd(); return '\\' + n; }
+      return s[i++] || '.';
+    };
+    const atom = () => {
+      skipWs();
+      const c = peek();
+      if (c === undefined) return '';
+      if (c === '{') { i++; const r = expr('}'); if (peek() === '}') i++; return `<mrow>${r}</mrow>`; }
+      if (c === '\\') {
+        i++;
+        const n = readCmd();
+        if (n === 'frac' || n === 'dfrac' || n === 'tfrac') { const a = group(), b = group(); return `<mfrac>${a}${b}</mfrac>`; }
+        if (n === 'binom') { const a = group(), b = group(); return `<mrow><mo>(</mo><mfrac linethickness="0">${a}${b}</mfrac><mo>)</mo></mrow>`; }
+        if (n === 'sqrt') { const o = optArg(); const a = group(); return o ? `<mroot>${a}${o}</mroot>` : `<msqrt>${a}</msqrt>`; }
+        if (n === 'text' || n === 'mathrm' || n === 'textrm' || n === 'operatorname') { const t = rawGroup(); return n === 'text' ? `<mtext>${esc(t)}</mtext>` : `<mi mathvariant="normal">${esc(t)}</mi>`; }
+        if (n === 'mathbf' || n === 'textbf') { return `<mstyle mathvariant="bold">${group()}</mstyle>`; }
+        if (n === 'mathit') { return `<mstyle mathvariant="italic">${group()}</mstyle>`; }
+        if (n === 'mathbb') { const t = rawGroup(); return `<mi mathvariant="double-struck">${esc(t)}</mi>`; }
+        if (n === 'underline') return `<munder accentunder="true">${group()}<mo>_</mo></munder>`;
+        if (MATH_ACCENTS[n]) { const a = group(); return `<mover accent="true">${a}<mo stretchy="${n === 'overline' || n === 'widehat' || n === 'overrightarrow' ? 'true' : 'false'}">${MATH_ACCENTS[n]}</mo></mover>`; }
+        if (n === 'left') { const d = readDelim(); const r = expr('\\right'); let d2 = '.'; if (s.startsWith('\\right', i)) { i += 6; d2 = readDelim(); } return `<mrow>${fence(d)}${r}${fence(d2)}</mrow>`; }
+        if (n === 'right') return '';
+        if (n === 'begin') {
+          const env = rawGroup();
+          const rows = [[]];
+          let cell = '';
+          for (;;) {
+            if (i >= s.length) break;
+            if (s.startsWith('\\end', i)) { i += 4; rawGroup(); break; }
+            if (peek() === '&') { i++; rows[rows.length - 1].push(cell); cell = ''; continue; }
+            if (s.startsWith('\\\\', i)) { i += 2; rows[rows.length - 1].push(cell); cell = ''; rows.push([]); continue; }
+            cell += expr('&');
+          }
+          rows[rows.length - 1].push(cell);
+          if (rows.length > 1 && rows[rows.length - 1].every(x => !x)) rows.pop();
+          const tbl = `<mtable${env === 'cases' ? ' columnalign="left left"' : ''}>${rows.map(r => `<mtr>${r.map(x => `<mtd><mrow>${x}</mrow></mtd>`).join('')}</mtr>`).join('')}</mtable>`;
+          const f = { pmatrix: ['(', ')'], bmatrix: ['[', ']'], Bmatrix: ['{', '}'], vmatrix: ['|', '|'], Vmatrix: ['‖', '‖'], cases: ['{', ''] }[env];
+          return f ? `<mrow><mo fence="true" stretchy="true">${esc(f[0])}</mo>${tbl}${f[1] ? `<mo fence="true" stretchy="true">${esc(f[1])}</mo>` : ''}</mrow>` : tbl;
+        }
+        if (n === ',' ) return '<mspace width="0.17em"/>';
+        if (n === ';' || n === ':') return '<mspace width="0.28em"/>';
+        if (n === 'quad') return '<mspace width="1em"/>';
+        if (n === 'qquad') return '<mspace width="2em"/>';
+        if (n === '!') return '<mspace width="-0.17em"/>';
+        if (n === ' ') return '<mspace width="0.25em"/>';
+        if (n === '\\') return '';
+        if ('{}%$#&_'.includes(n)) return `<mo>${esc(n)}</mo>`;
+        if (MATH_SYMBOLS[n]) return `<mi${/^[A-Z]/.test(n) && n.length > 1 ? ' mathvariant="normal"' : ''}>${MATH_SYMBOLS[n]}</mi>`;
+        if (MATH_OPS[n]) return `<mo>${MATH_OPS[n]}</mo>`;
+        if (MATH_BIG[n]) return `<mo largeop="true" movablelimits="${n.includes('int') ? 'false' : 'true'}"${n.includes('int') ? '' : ''} data-big="${n}">${MATH_BIG[n]}</mo>`;
+        if (MATH_FUNCS.includes(n)) { fnFlag = true; return `<mi data-fn="${n}">${n}</mi>`; }
+        return `<mtext>\\${esc(n)}</mtext>`;
+      }
+      if (/[0-9.]/.test(c)) { let n = ''; while (i < s.length && /[0-9.,]/.test(s[i]) && !(s[i] === ',' && !/[0-9]/.test(s[i + 1] || ''))) n += s[i++]; return `<mn>${esc(n)}</mn>`; }
+      if (/[a-zA-ZÀ-ɏͰ-Ͽ]/.test(c)) { i++; return `<mi>${esc(c)}</mi>`; }
+      if (c === '^' || c === '_' || c === '}' || c === '&') return '';
+      i++;
+      if (c === '□') return '<mi class="fx-slot">□</mi>';
+      if ('()[]|'.includes(c)) return `<mo stretchy="false">${esc(c)}</mo>`;
+      if ('+-=<>/!,;:?*'.includes(c) || /[←-⋿±×÷·]/.test(c)) return `<mo>${esc(c === '-' ? '−' : c === '*' ? '·' : c)}</mo>`;
+      if (c === "'") return '<mo>′</mo>';
+      return `<mi>${esc(c)}</mi>`;
+    };
+    const scripts = (base) => {
+      let sub = null, sup = null, primes = '';
+      for (;;) {
+        skipWs();
+        if (peek() === '^' && sup === null) { i++; sup = group(); continue; }
+        if (peek() === '_' && sub === null) { i++; sub = group(); continue; }
+        if (peek() === "'" && sup === null) { i++; primes += '′'; continue; }
+        break;
+      }
+      if (primes) {
+        if (sup === null && sub === null) return `<mrow>${base}<mo lspace="0" rspace="0">${primes}</mo></mrow>`;
+        if (sup === null) return `<mrow><msub>${base}${sub}</msub><mo lspace="0" rspace="0">${primes}</mo></mrow>`;
+        sup = `<mrow><mo lspace="0" rspace="0">${primes}</mo>${sup}</mrow>`;
+      }
+      if (sub === null && sup === null) return base;
+      const big = /data-big="(sum|prod|coprod|bigcup|bigcap)"|data-fn="(lim|max|min|sup|inf)"/.test(base);
+      if (big) {
+        if (sub !== null && sup !== null) return `<munderover>${base}${sub}${sup}</munderover>`;
+        if (sub !== null) return `<munder>${base}${sub}</munder>`;
+        return `<mover>${base}${sup}</mover>`;
+      }
+      if (sub !== null && sup !== null) return `<msubsup>${base}${sub}${sup}</msubsup>`;
+      if (sub !== null) return `<msub>${base}${sub}</msub>`;
+      return `<msup>${base}${sup}</msup>`;
+    };
+    function expr(stop) {
+      let out = '';
+      let guard = 0;
+      while (i < s.length && guard++ < 10000) {
+        skipWs();
+        if (i >= s.length) break;
+        if (stop === '}' && peek() === '}') break;
+        if (stop === ']' && peek() === ']') break;
+        if (stop === '&' && (peek() === '&' || s.startsWith('\\\\', i) || s.startsWith('\\end', i))) break;
+        if (stop === '\\right' && s.startsWith('\\right', i)) break;
+        if (peek() === '}' && stop !== '}') { i++; continue; }
+        const start = i;
+        fnFlag = false;
+        let a = atom();
+        const isFn = fnFlag;
+        if (i === start) { i++; continue; }
+        a = scripts(a);
+        out += a;
+        if (isFn) { skipWs(); if (i < s.length && !'(^_'.includes(peek())) out += '<mspace width="0.17em"/>'; }
+      }
+      return out;
+    }
+    let body = '';
+    try { body = expr(null); } catch (e) { body = `<mtext>${esc(s)}</mtext>`; }
+    return `<math${display ? ' display="block"' : ' displaystyle="true"'}><mrow>${body}</mrow></math>`;
+  },
+  spanHtml(tex, display) {
+    const t = String(tex || '').trim();
+    return `<span class="kt-math${display ? ' block' : ''}" contenteditable="false" data-tex="${escapeHtml(t)}"${display ? ' data-display="1"' : ''}>${this.toMathML(t, display)}</span>`;
+  },
+
+  /* ---------------------------------------------------------- Vorlagen und Bausteine */
+  TEMPLATES: [
+    ['Satz des Pythagoras', 'a^2+b^2=c^2'],
+    ['Quadratische Formel', 'x=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}'],
+    ['Kreisfläche', 'A=\\pi r^2'],
+    ['Binomischer Lehrsatz', '(x+a)^n=\\sum_{k=0}^{n}\\binom{n}{k}x^k a^{n-k}'],
+    ['Ableitung', "f'(x)=\\lim_{h\\to 0}\\frac{f(x+h)-f(x)}{h}"],
+    ['Integral', '\\int_{a}^{b} f(x)\\,dx=F(b)-F(a)'],
+    ['Taylorreihe', 'e^x=\\sum_{n=0}^{\\infty}\\frac{x^n}{n!}'],
+    ['Mitternachtsformel (Diskriminante)', 'D=b^2-4ac'],
+    ['Ideales Gasgesetz', 'pV=nRT'],
+    ['Energie', 'E=mc^2'],
+    ['Matrix 2×2', 'A=\\begin{pmatrix}a & b\\\\ c & d\\end{pmatrix}'],
+    ['Fallunterscheidung', '|x|=\\begin{cases}x & x\\geq 0\\\\ -x & x<0\\end{cases}'],
+  ],
+  STRUCTS: [
+    ['Bruch', '\\frac{□}{□}', 'frac'], ['Hochgestellt', '□^{□}', 'sup'], ['Tiefgestellt', '□_{□}', 'sub'], ['Hoch und tief', '□_{□}^{□}', 'subsup'],
+    ['Wurzel', '\\sqrt{□}', 'sqrt'], ['n-te Wurzel', '\\sqrt[□]{□}', 'root'], ['Summe', '\\sum_{□}^{□} □', 'sum'], ['Produkt', '\\prod_{□}^{□} □', 'prod'],
+    ['Integral', '\\int_{□}^{□} □\\,d□', 'int'], ['Grenzwert', '\\lim_{□\\to □} □', 'lim'], ['Klammern ( )', '\\left( □ \\right)', 'paren'],
+    ['Eckige Klammern [ ]', '\\left[ □ \\right]', 'brack'], ['Betrag | |', '\\left| □ \\right|', 'abs'], ['Matrix 2×2', '\\begin{pmatrix}□ & □\\\\ □ & □\\end{pmatrix}', 'matrix'],
+    ['Vektor', '\\vec{□}', 'vec'], ['Querstrich', '\\overline{□}', 'bar'], ['Dach', '\\hat{□}', 'hat'], ['Text', '\\text{□}', 'text'],
+    ['Fallunterscheidung', '\\begin{cases}□ & □\\\\ □ & □\\end{cases}', 'cases'], ['Binomialkoeffizient', '\\binom{□}{□}', 'binom'],
+    ['sin', '\\sin □', 'fn'], ['cos', '\\cos □', 'fn'], ['log', '\\log_{□} □', 'fn'], ['ln', '\\ln □', 'fn'],
+  ],
+  SYMS: [
+    ['Griechisch', ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta', 'lambda', 'mu', 'nu', 'xi', 'pi', 'rho', 'sigma', 'tau', 'phi', 'chi', 'psi', 'omega', 'Gamma', 'Delta', 'Theta', 'Lambda', 'Pi', 'Sigma', 'Phi', 'Psi', 'Omega']],
+    ['Operatoren', ['pm', 'mp', 'times', 'div', 'cdot', 'circ', 'leq', 'geq', 'neq', 'approx', 'equiv', 'sim', 'propto', 'll', 'gg']],
+    ['Mengen & Logik', ['in', 'notin', 'subset', 'subseteq', 'cup', 'cap', 'setminus', 'emptyset', 'forall', 'exists', 'neg', 'land', 'lor', 'N', 'Z', 'Q', 'R', 'C']],
+    ['Pfeile', ['to', 'leftarrow', 'leftrightarrow', 'Rightarrow', 'Leftarrow', 'Leftrightarrow', 'mapsto', 'uparrow', 'downarrow']],
+    ['Weitere', ['infty', 'partial', 'nabla', 'hbar', 'ell', 'degree', 'prime', 'perp', 'parallel', 'angle', 'ldots', 'cdots', 'therefore', 'because']],
+  ],
+
+  /* ---------------------------------------------------------- Editor */
+  open(existing, preset) {
+    if (!existing && !Canvas.page) { UI.toast('Bitte zuerst eine Seite öffnen'); return Promise.resolve(); }
+    if (!existing && Canvas.editing) Formula.grabRange();
+    const startTex = existing ? existing.dataset.tex || '' : (preset || '');
+    const startDisplay = existing ? existing.dataset.display === '1' : false;
+    const range = Canvas.editing && Canvas.lastRange ? Canvas.lastRange.cloneRange() : null;
+    const editBox = Canvas.editing;
+    return UI.dialog((d, close) => {
+      d.classList.add('fx-dlg');
+      d.append(el('h2', { text: existing ? 'Formel bearbeiten' : 'Formel einfügen' }));
+      const ta = el('textarea', { class: 'fx-in', spellcheck: 'false', placeholder: 'z.B. x^2 + y^2 = r^2   oder Bausteine unten anklicken' });
+      ta.value = startTex;
+      const prev = el('div', { class: 'fx-prev' });
+      const disp = el('input', { type: 'checkbox' });
+      disp.checked = startDisplay;
+      const upd = () => { prev.innerHTML = ta.value.trim() ? this.toMathML(ta.value, true) : '<span class="fx-empty">Vorschau</span>'; };
+      ta.addEventListener('input', upd);
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab' && ta.value.includes('□')) { e.preventDefault(); this.nextSlot(ta, e.shiftKey); }
+      });
+      d.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') return;
+        e.stopPropagation();
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); done(); }
+      });
+      const insert = (snippet) => {
+        const a = ta.selectionStart, b = ta.selectionEnd;
+        const sel = ta.value.slice(a, b);
+        let snip = snippet;
+        if (sel && snip.includes('□')) snip = snip.replace('□', sel);
+        const before = ta.value.slice(0, a);
+        const needSpace = /\\[a-zA-Z]+$/.test(before) && /^[a-zA-Z]/.test(snip);
+        ta.value = before + (needSpace ? ' ' : '') + snip + ta.value.slice(b);
+        const pos = before.length + (needSpace ? 1 : 0);
+        const slot = ta.value.indexOf('□', pos);
+        ta.focus();
+        if (slot >= 0 && slot < pos + snip.length) ta.setSelectionRange(slot, slot + 1);
+        else ta.setSelectionRange(pos + snip.length, pos + snip.length);
+        upd();
+      };
+      const tabsEl = el('div', { class: 'fx-tabs' });
+      const pane = el('div', { class: 'fx-pane' });
+      const tabs = [['Strukturen', () => {
+        for (const [label, snip] of this.STRUCTS) {
+          const b = el('button', { class: 'fx-btn', title: label + '\n' + snip.replace(/□/g, '…') });
+          b.innerHTML = this.toMathML(snip, false).replace('<math', '<math class="fx-mini"');
+          b.addEventListener('click', () => insert(snip));
+          pane.append(b);
+        }
+      }], ...this.SYMS.map(([name, list]) => [name, () => {
+        for (const n of list) {
+          const ch = MATH_SYMBOLS[n] || MATH_OPS[n] || n;
+          const b = el('button', { class: 'fx-sym', title: '\\' + n, text: ch });
+          b.addEventListener('click', () => insert('\\' + n + ' '));
+          pane.append(b);
+        }
+      }]), ['Vorlagen', () => {
+        for (const [label, tex] of this.TEMPLATES) {
+          const b = el('button', { class: 'fx-tpl', title: label });
+          b.innerHTML = this.toMathML(tex, false) + `<span>${escapeHtml(label)}</span>`;
+          b.addEventListener('click', () => { ta.value = tex; ta.focus(); upd(); });
+          pane.append(b);
+        }
+      }]];
+      const show = (k) => {
+        pane.innerHTML = '';
+        [...tabsEl.children].forEach((t, j) => t.classList.toggle('on', j === k));
+        tabs[k][1]();
+        try { localStorage.setItem('kt-fx-tab', k); } catch (e) { /* */ }
+      };
+      tabs.forEach(([name], k) => tabsEl.append(el('button', { class: 'fx-tab', text: name, onclick: () => show(k) })));
+      d.append(tabsEl, pane, ta, prev,
+        el('div', { class: 'fx-foot' },
+          el('label', { class: 'fx-chk' }, disp, 'Eigene Zeile (zentriert)'),
+          el('span', { class: 'fx-hint', text: 'Tab = nächstes Feld □ · Strg+Enter = einfügen · ^ hoch, _ tief, \\frac{a}{b}, \\sqrt{x}' })));
+      const done = () => {
+        const tex = ta.value.replace(/□/g, '').trim();
+        close(tex ? { tex, display: disp.checked } : null);
+      };
+      d.append(el('div', { class: 'dlg-btns' },
+        existing ? el('button', { class: 'btn danger', text: 'Formel entfernen', onclick: () => close({ remove: true }) }) : null,
+        el('button', { class: 'btn', text: 'Abbrechen', onclick: () => close(null) }),
+        el('button', { class: 'btn primary', text: existing ? 'Übernehmen' : 'Einfügen', onclick: done })));
+      let k0 = 0;
+      try { k0 = +localStorage.getItem('kt-fx-tab') || 0; } catch (e) { /* */ }
+      show(Math.min(k0, tabs.length - 1));
+      upd();
+      setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 30);
+    }, { wide: true }).then((res) => {
+      if (!res) return;
+      if (existing) this.replace(existing, res);
+      else this.insertNew(res, range, editBox);
+    });
+  },
+  /* aktuelle Schreibmarke merken (selectionchange kommt verzögert) */
+  grabRange() {
+    const t = Canvas.textEl(Canvas.editing), sel = getSelection();
+    if (t && sel.rangeCount && t.contains(sel.anchorNode)) { Canvas.lastRange = sel.getRangeAt(0).cloneRange(); Canvas.lastRangeBox = Canvas.editing; }
+    else Canvas.restoreRange();
+  },
+  /* Menüband: Formel-Galerie wie in Office */
+  gallery(anchor) {
+    if (!Canvas.page) { UI.toast('Bitte zuerst eine Seite öffnen'); return; }
+    if (Canvas.editing) this.grabRange();
+    const box = el('div', { class: 'fx-gal' });
+    box.append(el('div', { class: 'fx-gal-head', text: 'Integriert' }));
+    const grid = el('div', { class: 'fx-gal-grid' });
+    for (const [label, tex] of this.TEMPLATES) {
+      const b = el('button', { class: 'fx-gal-item', title: 'Bearbeiten und einfügen: ' + label });
+      b.innerHTML = `<span class="fx-gal-name">${escapeHtml(label)}</span>` + this.toMathML(tex, true);
+      b.addEventListener('mousedown', e => e.preventDefault());
+      b.addEventListener('click', () => { UI.closePopup(); this.open(null, tex); });
+      grid.append(b);
+    }
+    box.append(grid, el('div', { class: 'fx-gal-sep' }),
+      el('button', { class: 'fx-gal-new', html: icon('formula', 16) + '<span>Neue Formel einfügen …</span><kbd>Alt+=</kbd>', onmousedown: e => e.preventDefault(), onclick: () => { UI.closePopup(); this.open(null); } }));
+    UI.showPopup(box, 0, 0, { anchor });
+  },
+  nextSlot(ta, back) {
+    const v = ta.value, pos = back ? ta.selectionStart - 1 : ta.selectionEnd;
+    const i = back ? v.lastIndexOf('□', pos - 1) : v.indexOf('□', pos);
+    const j = i >= 0 ? i : (back ? v.lastIndexOf('□') : v.indexOf('□'));
+    if (j >= 0) ta.setSelectionRange(j, j + 1);
+  },
+  insertNew(res, range, editBox) {
+    const html = this.spanHtml(res.tex, res.display) + (res.display ? '' : '\u200B');
+    if (editBox && Canvas.box(editBox) && Canvas.textEl(editBox)) {
+      if (Canvas.editing !== editBox) Canvas.focusText(editBox, true);
+      if (range && Canvas.textEl(editBox).contains(range.startContainer)) { Canvas.lastRange = range; Canvas.lastRangeBox = editBox; }
+      let atEnd = true;
+      const t = Canvas.textEl(editBox), r = Canvas.lastRangeBox === editBox ? Canvas.lastRange : null;
+      if (r && t.contains(r.endContainer)) {
+        const tail = document.createRange();
+        tail.setStart(r.endContainer, r.endOffset);
+        tail.setEnd(t, t.childNodes.length);
+        atEnd = !tail.toString().replace(/[\u200B\s]/g, '');
+      }
+      Fmt.apply(() => Fmt.exec('insertHTML', res.display ? `<div>${html}</div>${atEnd ? '<div><br></div>' : ''}` : html), 'Formel eingefügt');
+      return;
+    }
+    if (!Canvas.page) { UI.toast('Bitte zuerst eine Seite öffnen'); return; }
+    const c = Canvas.viewCenter();
+    const b = Canvas.createBoxAt({ x: c.x - 120, y: c.y - 30 }, { html: `<div>${html}</div>`, noFocus: true, label: 'Formel eingefügt', w: 320 });
+    if (b) Canvas.select([b.id]);
+  },
+  replace(span, res) {
+    const t = span.closest('.box-text');
+    const boxEl = span.closest('.box');
+    const b = boxEl && Canvas.box(boxEl.dataset.id);
+    if (!t || !b) return;
+    Hist.flushPending();
+    if (res.remove) span.remove();
+    else {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = this.spanHtml(res.tex, res.display);
+      span.replaceWith(tmp.firstChild);
+    }
+    b.html = boxHtml(t);
+    Canvas.els.get(b.id)._html = b.html;
+    Hist.touchPage(Canvas.pageId);
+    Hist.commit(res.remove ? 'Formel entfernt' : 'Formel geändert');
+    Canvas.layoutSoon();
+  },
+};
+
+</script>
+<script>
+/* ---- js/export.js ---- */
+'use strict';
+/* Exportieren: Seiten, Abschnitte und Notizbücher gezielt auswählen.
+ * Formate: PDF (über den Druckdialog), Webseite (eine HTML-Datei), KnowledgeTree-Datei (verlustfrei, wie ein Backup),
+ * OneNote (.one für einen Abschnitt, .onepkg für ein Notizbuch – Beta, siehe onenote-write.js). */
+
+const EXPORT_FORMATS = [
+  { id: 'pdf', label: 'PDF', icon: 'filePdf', text: 'Zum Drucken und Weitergeben. Es öffnet sich der Druckdialog – dort „Als PDF speichern“ wählen.' },
+  { id: 'html', label: 'Webseite (HTML)', icon: 'globe', text: 'Eine einzige Datei für jeden Browser, mit Inhaltsverzeichnis, Bildern und Anhängen.' },
+  { id: 'kt', label: 'KnowledgeTree-Datei', icon: 'archive', text: 'Verlustfrei mit allen Bildern und Anhängen. Mit „Datei → Backup laden“ wieder einlesen.' },
+  { id: 'one', label: 'OneNote', icon: 'oneNote', text: 'Ein Abschnitt wird zur .one-Datei, mehrere zu einem Notizbuch (.onepkg). Beta – bitte in OneNote prüfen.' },
+];
+const KIND_ICON = { notebook: 'book', group: 'folder', section: 'page', quick: 'bolt' };
+
+const Export = {
+  sel: new Set(),
+  open: false,
+
+  /* ---------------------------------------------------------- Dialog */
+  show(preset = {}) {
+    if (Store.readOnly) return;
+    Canvas.stopEditing();
+    Hist.flushPending();
+    const curPid = Canvas.pageId;
+    const curSec = curPid ? Tree.groupOfPage(curPid) : Tree.group(Store.ui.currentGroup);
+    const curNb = curSec ? Tree.notebookOf(curSec.id) : null;
+    this.sel = new Set();
+    if (preset.pages) preset.pages.forEach(p => this.sel.add(p));
+    else if (preset.group) { const g = Tree.group(preset.group); if (g) Tree.pagesDeep(g).forEach(p => this.sel.add(p)); }
+    else if (curPid) this.sel.add(curPid);
+    let format = Store.ui.exportFormat || 'pdf';
+    const open = new Set(); // aufgeklappte Knoten
+    for (const g of Store.groups) if (g.kind === 'notebook' && !g.closed) open.add(g.id);
+    if (curSec) for (const g of Tree.path(curSec.id)) open.add(g.id);
+    if (preset.group) for (const g of Tree.path(preset.group)) open.add(g.id);
+
+    return UI.dialog((d, close) => {
+      d.classList.add('ex-dlg');
+      d.append(el('h2', { text: 'Exportieren' }));
+      // Format
+      const fmts = el('div', { class: 'ex-fmts' });
+      const fmtText = el('div', { class: 'ex-fmt-text' });
+      const opts = el('div', { class: 'ex-opts' });
+      const renderFormats = () => {
+        fmts.innerHTML = '';
+        for (const f of EXPORT_FORMATS) {
+          const b = el('button', { class: 'ex-fmt' + (f.id === format ? ' on' : ''), type: 'button', html: icon(f.icon, 22) + `<span>${escapeHtml(f.label)}</span>` });
+          b.addEventListener('click', () => { format = f.id; renderFormats(); renderOpts(); });
+          fmts.append(b);
+        }
+        fmtText.textContent = EXPORT_FORMATS.find(f => f.id === format).text;
+      };
+      const o = { paper: Store.ui.exportPaper || 'a4-hoch', fit: Store.ui.exportFit || 'breite', head: Store.ui.exportHead !== false, bg: !!Store.ui.exportBg };
+      const renderOpts = () => {
+        opts.innerHTML = '';
+        if (format === 'pdf') {
+          const paper = el('select', {}, ...[['a4-hoch', 'A4 hoch'], ['a4-quer', 'A4 quer'], ['a3-hoch', 'A3 hoch'], ['a3-quer', 'A3 quer'], ['letter-hoch', 'Letter hoch']].map(([v, l]) => el('option', { value: v, text: l, selected: v === o.paper })));
+          paper.addEventListener('change', () => { o.paper = paper.value; });
+          const fit = el('select', {}, ...[['breite', 'an Blattbreite anpassen'], ['blatt', 'ganze Seite auf ein Blatt'], ['original', 'Originalgrösse (100 %)']].map(([v, l]) => el('option', { value: v, text: l, selected: v === o.fit })));
+          fit.addEventListener('change', () => { o.fit = fit.value; });
+          opts.append(el('label', { class: 'ex-opt' }, 'Papier ', paper), el('label', { class: 'ex-opt' }, 'Grösse ', fit));
+        }
+        if (format === 'pdf' || format === 'html') {
+          const head = el('input', { type: 'checkbox' }); head.checked = o.head;
+          head.addEventListener('change', () => { o.head = head.checked; });
+          const bg = el('input', { type: 'checkbox' }); bg.checked = o.bg;
+          bg.addEventListener('change', () => { o.bg = bg.checked; });
+          opts.append(el('label', { class: 'ex-opt' }, head, 'Titel und Datum'), el('label', { class: 'ex-opt' }, bg, 'Punkte/Linien der Seite'));
+        }
+        if (format === 'one') opts.append(el('div', { class: 'ex-note', html: 'Text mit Formatierung, Überschriften, Listen, Bilder, Freihand und Formen kommen an derselben Stelle an. Verbindungen, Pakete und Feldrahmen gibt es in OneNote nicht – sie werden zu Zeichnungen. Tabellen werden zu Text mit Tabulatoren, Formeln zu LaTeX-Text, Anhänge zu ihrem Namen.<br>Öffnen: <b>.one</b> bzw. <b>.onepkg</b> doppelklicken (OneNote für Windows).' }));
+      };
+      // Auswahl
+      const presets = el('div', { class: 'ex-presets' });
+      const P = (label, fn, ok = true) => { const b = el('button', { class: 'btn small', type: 'button', text: label, disabled: !ok }); b.addEventListener('click', () => { fn(); refresh(); }); presets.append(b); };
+      const setAll = (ids, on) => ids.forEach(p => on ? this.sel.add(p) : this.sel.delete(p));
+      P('Diese Seite', () => { this.sel.clear(); if (curPid) this.sel.add(curPid); }, !!curPid);
+      P('Dieser Abschnitt', () => { this.sel.clear(); setAll(curSec.pages, true); open.add(curSec.id); }, !!curSec);
+      P('Dieses Notizbuch', () => { this.sel.clear(); setAll(Tree.pagesDeep(curNb), true); }, !!curNb);
+      P('Alles', () => { this.sel.clear(); Store.groups.forEach(g => setAll(Tree.pagesDeep(g), true)); });
+      P('Nichts', () => this.sel.clear());
+      const treeEl = el('div', { class: 'ex-tree' });
+      const sum = el('div', { class: 'ex-sum' });
+      const state = (ids) => { let n = 0; for (const p of ids) if (this.sel.has(p)) n++; return n === 0 ? 0 : n === ids.length ? 2 : 1; };
+      const childPages = (sec, i) => { const out = [sec.pages[i]]; const L = Store.pages[sec.pages[i]].level || 0; for (let j = i + 1; j < sec.pages.length && (Store.pages[sec.pages[j]].level || 0) > L; j++) out.push(sec.pages[j]); return out; };
+      const row = (depth, html, ids, onToggle, extra) => {
+        const r = el('div', { class: 'ex-row', style: { paddingLeft: (8 + depth * 18) + 'px' } });
+        const cb = el('input', { type: 'checkbox' });
+        const st = state(ids);
+        cb.checked = st === 2; cb.indeterminate = st === 1; cb.disabled = !ids.length;
+        cb.addEventListener('change', () => { setAll(ids, st !== 2); refresh(); });
+        r.append(extra || el('span', { class: 'ex-tw' }), cb, el('span', { class: 'ex-name', html }));
+        r.addEventListener('click', (e) => { if (e.target === cb || e.target.closest('.ex-tw')) return; if (onToggle) onToggle(); else if (ids.length) { setAll(ids, st !== 2); refresh(); } });
+        return r;
+      };
+      const renderNode = (g, depth) => {
+        const ids = Tree.pagesDeep(g);
+        const hasKids = g.groups.length || g.pages.length;
+        const tw = el('span', { class: 'ex-tw' + (hasKids ? '' : ' none'), html: hasKids ? icon(open.has(g.id) ? 'chevDown' : 'chevRight', 12) : '' });
+        tw.addEventListener('click', () => { if (open.has(g.id)) open.delete(g.id); else open.add(g.id); refresh(); });
+        const dot = g.kind === 'section' || g.kind === 'quick' ? `<i class="ex-dot" style="background:${escapeHtml(g.color || '#8a8886')}"></i>` : icon(KIND_ICON[g.kind] || 'folder', 14);
+        treeEl.append(row(depth, `${dot}<b>${escapeHtml(g.name)}</b><small>${ids.length ? ids.length + ' Seite' + (ids.length === 1 ? '' : 'n') : 'leer'}${g.closed ? ' · geschlossen' : ''}</small>`, ids, () => tw.click(), tw));
+        if (!open.has(g.id)) return;
+        for (const c of g.groups) renderNode(c, depth + 1);
+        g.pages.forEach((pid, i) => {
+          const p = Store.pages[pid];
+          if (!p) return;
+          const lv = p.level || 0;
+          const ids2 = childPages(g, i);
+          treeEl.append(row(depth + 1 + lv, `${icon('page', 13)}<span>${escapeHtml(p.title || 'Unbenannte Seite')}</span>${ids2.length > 1 ? `<small>+${ids2.length - 1} Unterseite${ids2.length > 2 ? 'n' : ''}</small>` : ''}`, ids2, null));
+        });
+      };
+      const refresh = () => {
+        const top = treeEl.scrollTop;
+        treeEl.innerHTML = '';
+        for (const g of Store.groups) renderNode(g, 0);
+        treeEl.scrollTop = top;
+        const secs = Tree.sections().filter(s => s.pages.some(p => this.sel.has(p)));
+        const nbs = new Set(secs.map(s => (Tree.notebookOf(s.id) || s).id));
+        sum.textContent = this.sel.size ? `Ausgewählt: ${this.sel.size} Seite${this.sel.size === 1 ? '' : 'n'} aus ${secs.length} Abschnitt${secs.length === 1 ? '' : 'en'}${nbs.size > 1 ? ` in ${nbs.size} Notizbüchern` : ''}` : 'Nichts ausgewählt';
+        go.disabled = !this.sel.size;
+      };
+      const go = el('button', { class: 'btn primary', text: 'Exportieren', onclick: () => close({ format, o }) });
+      d.append(el('div', { class: 'ex-label', text: 'Format' }), fmts, fmtText, opts,
+        el('div', { class: 'ex-label', text: 'Was soll exportiert werden?' }), presets, treeEl, sum,
+        el('div', { class: 'dlg-btns' }, el('button', { class: 'btn', text: 'Abbrechen', onclick: () => close(null) }), go));
+      renderFormats(); renderOpts(); refresh();
+    }, { wide: true }).then(async (res) => {
+      if (!res) return;
+      Store.ui.exportFormat = res.format;
+      Object.assign(Store.ui, { exportPaper: res.o.paper, exportFit: res.o.fit, exportHead: res.o.head, exportBg: res.o.bg });
+      UiState.saveSoon();
+      await this.run(res.format, res.o);
+    });
+  },
+
+  /* Auswahl als beschnittener Baum (nur Knoten mit ausgewählten Seiten) */
+  pruned(list = Store.groups) {
+    const out = [];
+    for (const g of list) {
+      const pages = g.pages.filter(p => this.sel.has(p) && Store.pages[p]);
+      const groups = this.pruned(g.groups);
+      if (!pages.length && !groups.length) continue;
+      out.push({ id: g.id, name: g.name, color: g.color || '', kind: g.kind, pages, groups });
+    }
+    return out;
+  },
+  /* Seiten der Auswahl in Baum-Reihenfolge, mit Pfad */
+  ordered(tree) {
+    const out = [];
+    const walk = (list, path) => { for (const g of list) { for (const p of g.pages) out.push({ pid: p, path: [...path, g] }); walk(g.groups, [...path, g]); } };
+    walk(tree, []);
+    return out;
+  },
+  exportName(tree) {
+    if (this.sel.size === 1) return Store.pages[[...this.sel][0]].title || 'Seite';
+    let t = tree;
+    const names = [];
+    while (t.length === 1) { names.push(t[0].name); if (t[0].pages.length) break; t = t[0].groups; }
+    return names.length ? names[names.length - 1] : 'KnowledgeTree-Export';
+  },
+  safe(name) { return String(name || 'Export').replace(/[<>:"/\\|?*\u0000-\u001f]+/g, '_').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Export'; },
+  download(name, blob) {
+    const a = el('a', { href: URL.createObjectURL(blob), download: name });
+    document.body.append(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  },
+
+  /* ---------------------------------------------------------- Ablauf */
+  async run(format, o) {
+    await Save.flushAll();
+    const tree = this.pruned();
+    const list = this.ordered(tree);
+    if (!list.length) return;
+    const name = this.exportName(tree);
+    const prog = this.progress('Exportieren …');
+    try {
+      if (format === 'kt') await this.toKt(tree, name, prog);
+      else if (format === 'html') await this.toHtml(tree, list, name, o, prog);
+      else if (format === 'pdf') await this.toPdf(list, name, o, prog);
+      else if (format === 'one') await this.toOneNote(tree, name, prog);
+    } catch (e) {
+      console.error(e);
+      UI.toast('Export fehlgeschlagen: ' + e.message, 5000);
+    } finally { prog.close(); }
+  },
+  progress(title) {
+    const back = el('div', { class: 'dlg-back ex-busy' });
+    const txt = el('div', { class: 'ex-busy-text', text: title });
+    const bar = el('div', { class: 'ex-bar' }, el('i'));
+    back.append(el('div', { class: 'dlg' }, el('h2', { text: title }), txt, bar));
+    document.body.append(back);
+    return {
+      set(t, f) { txt.textContent = t; if (f != null) bar.firstChild.style.width = Math.round(f * 100) + '%'; },
+      close() { back.remove(); },
+    };
+  },
+
+  /* ---------------------------------------------------------- Dateien (Bilder, Anhänge) */
+  assetNames(obj) {
+    const s = typeof obj === 'string' ? obj : JSON.stringify(obj);
+    return [...new Set(s.match(/[0-9a-f]{40}\.[a-z0-9]{1,8}/g) || [])];
+  },
+  async assetBlob(name) {
+    try { const r = await fetch(await Backend.imgURL(name)); if (!r.ok) return null; return await r.blob(); } catch (e) { return null; }
+  },
+  async assetData(name, cache) {
+    if (cache && cache.has(name)) return cache.get(name);
+    const b = await this.assetBlob(name);
+    const u = b ? await blobToDataURL(b) : null;
+    if (cache) cache.set(name, u);
+    return u;
+  },
+
+  /* ---------------------------------------------------------- KnowledgeTree-Datei */
+  async toKt(tree, name, prog) {
+    const seiten = {};
+    for (const { pid } of this.ordered(tree)) seiten[pid] = JSON.parse(serPage(Store.pages[pid]));
+    const names = this.assetNames(seiten);
+    const bilder = {};
+    let i = 0;
+    for (const n of names) {
+      prog.set(`Bilder und Anhänge … (${++i}/${names.length})`, i / names.length);
+      const u = await this.assetData(n);
+      if (u) bilder[n] = u;
+    }
+    const data = { typ: 'KnowledgeTree-Backup', version: 2, erstellt: new Date().toISOString(), name, gruppen: tree, seiten, bilder };
+    const stamp = new Date().toISOString().slice(0, 10);
+    this.download(`${this.safe(name)}_${stamp}.knowledgetree.json`, new Blob([JSON.stringify(data)], { type: 'application/json' }));
+    UI.toast(`${Object.keys(seiten).length} Seite(n) als KnowledgeTree-Datei exportiert`, 3500);
+  },
+
+  /* ---------------------------------------------------------- Seiten als statisches HTML */
+  /* jede Seite der Reihe nach im Canvas darstellen (hell), danach alles wie vorher */
+  async renderEach(list, prog, fn) {
+    const origPid = Canvas.pageId;
+    const origView = origPid && Store.ui.views[origPid] ? { ...Store.ui.views[origPid] } : null;
+    const origTheme = document.body.dataset.theme;
+    document.body.dataset.theme = 'hell';
+    try {
+      let k = 0;
+      for (const it of list) {
+        const page = Store.pages[it.pid];
+        if (!page) continue;
+        prog.set(`Seite ${++k} von ${list.length}: ${page.title || ''}`, (k - 1) / list.length);
+        Canvas.showPage(page);
+        await this.waitImages($('#layer-boxes'));
+        Canvas.layout();
+        Draw.render();
+        await nextFrame();
+        await fn(page, it.pid, it);
+      }
+    } finally {
+      document.body.dataset.theme = origTheme;
+      if (origPid && origView) Store.ui.views[origPid] = origView;
+      Canvas.load(origPid);
+    }
+  },
+  async snapshots(list, prog, opts = {}) {
+    const cache = new Map();
+    const out = [];
+    await this.renderEach(list, prog, async (page, pid, it) => { out.push({ pid, path: it.path, page, ...(await this.snapshot(page, cache, opts)) }); });
+    return out;
+  },
+  async waitImages(root) {
+    for (let t = 0; t < 40; t++) {
+      const imgs = [...root.querySelectorAll('img')];
+      if (imgs.every(i => i.getAttribute('src') && i.complete)) return;
+      await new Promise(r => setTimeout(r, 75));
+    }
+  },
+  async snapshot(page, cache, opts) {
+    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+    const add = (r) => { if (!r) return; x1 = Math.min(x1, r.x); y1 = Math.min(y1, r.y); x2 = Math.max(x2, r.x + r.w); y2 = Math.max(y2, r.y + r.h); };
+    for (const r of Canvas.rects.values()) add(r);
+    for (const d of page.drawings) { const b = DG.bbox(d); add({ x: b.x - d.w, y: b.y - d.w, w: b.w + 2 * d.w, h: b.h + 2 * d.w }); }
+    for (const pts of Canvas.linkGeo ? Canvas.linkGeo.values() : []) for (const q of pts || []) add({ x: q.x - 6, y: q.y - 6, w: 12, h: 12 });
+    if (x1 === Infinity) { x1 = y1 = 0; x2 = 300; y2 = 100; }
+    const M = 16;
+    x1 = Math.floor(x1 - M); y1 = Math.floor(y1 - M); x2 = Math.ceil(x2 + M); y2 = Math.ceil(y2 + M);
+    const world = $('#world').cloneNode(true);
+    world.removeAttribute('id');
+    world.className = 'kt-world';
+    world.style.transform = `translate(${-x1}px, ${-y1}px)`;
+    world.querySelectorAll('#layer-tools, #layer-handles, #layer-overlay, .sock, .box-rs, .fimg-rs, .link-hit, .box-lock, .pkg-lock').forEach(x => x.remove());
+    world.querySelectorAll('[contenteditable]').forEach(x => x.removeAttribute('contenteditable'));
+    world.querySelectorAll('[spellcheck]').forEach(x => x.removeAttribute('spellcheck'));
+    world.querySelectorAll('[title]').forEach(x => x.removeAttribute('title'));
+    world.querySelectorAll('.sel, .editing').forEach(x => x.classList.remove('sel', 'editing'));
+    // Bilder einbetten
+    for (const img of world.querySelectorAll('img')) {
+      let name = img.dataset.ktSrc;
+      if (!name) {
+        const f = img.closest('.fimg'), bx = img.closest('.box');
+        const b = bx && page.boxes.find(q => q.id === bx.dataset.id);
+        const im = b && f && b.images.find(q => q.id === f.dataset.img);
+        name = im && im.src;
+      }
+      const u = name ? await this.assetData(name, cache) : null;
+      if (u) img.setAttribute('src', u); else img.removeAttribute('src');
+      img.removeAttribute('data-kt-src');
+    }
+    // Anhänge als Download-Link
+    for (const a of world.querySelectorAll('a.kt-file')) {
+      const n = a.dataset.ktFile;
+      const b = n && opts.attachments !== false ? await this.assetBlob(n) : null;
+      if (b && b.size < 25e6) { a.setAttribute('href', await blobToDataURL(b)); a.setAttribute('download', a.dataset.name || n); }
+      a.removeAttribute('data-kt-file');
+    }
+    for (const a of world.querySelectorAll('.box-text a[href]:not(.kt-file)')) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener'); }
+    return { html: world.outerHTML, x1, y1, W: x2 - x1, H: y2 - y1 };
+  },
+  pageBg(p, s, withLines) {
+    const css = [`background-color:${p.color || '#ffffff'}`];
+    if (!withLines) return css.join(';');
+    const [kind, size] = (p.bg || 'keiner').split('-');
+    const step = { punkte: 20, raster: { s: 12, m: 20, l: 32 }[size || 'm'], linien: { s: 16, m: 24, l: 36 }[size || 'm'] }[kind];
+    if (!step) return css.join(';');
+    css.push(`background-position:${-s.x1}px ${-s.y1}px`);
+    if (kind === 'punkte') css.push(`background-image:radial-gradient(circle at ${step / 2}px ${step / 2}px, var(--dot) 1.15px, transparent 1.75px)`, `background-size:${step}px ${step}px`);
+    if (kind === 'raster') css.push('background-image:linear-gradient(to right, var(--gridline) 1px, transparent 1px), linear-gradient(to bottom, var(--gridline) 1px, transparent 1px)', `background-size:${step}px ${step}px`);
+    if (kind === 'linien') css.push('background-image:linear-gradient(to bottom, var(--gridline) 1px, transparent 1px)', `background-size:100% ${step}px`);
+    return css.join(';');
+  },
+  async appCss() {
+    const inline = document.getElementById('kt-css');
+    let css = inline ? inline.textContent : '';
+    if (!css) { try { css = await (await fetch('app.css')).text(); } catch (e) { /* */ } }
+    return css.replace(/url\((['"]?)[^)'"]*icon\.svg\1\)/g, 'none').replace(/url\('data:image\/svg\+xml[^']*'\)/g, 'none');
+  },
+  pageHtml(s, o, extraStyle = '') {
+    const p = s.page;
+    const head = o.head ? `<header class="kt-head"><h1>${escapeHtml(p.title || 'Unbenannte Seite')}</h1><div class="kt-meta">${escapeHtml(fmtDate(p.created))}</div></header>` : '';
+    return `<section class="kt-page" id="s-${escapeHtml(s.pid)}" data-title="${escapeHtml(p.title || '')}">${head}` +
+      `<div class="kt-sheet" style="${this.pageBg(p, s, o.bg)};${extraStyle}"><div class="kt-wrap" style="width:${s.W}px;height:${s.H}px">${s.html}</div></div></section>`;
+  },
+  EXPORT_CSS: `
+html,body{overflow:visible!important;height:auto!important;user-select:text;-webkit-user-select:text}
+body.kt-export{background:#fff;color:var(--ink);margin:0;display:block}
+.kt-world{position:absolute;left:0;top:0;transform-origin:0 0}
+.kt-world .box-grip{display:none}
+.kt-world .box-text,.kt-world .box-bar,.kt-world .fimg,.kt-world .pkg-head{cursor:auto}
+.kt-world .box.plain:hover{border-color:transparent}
+.kt-world .box-text a.kt-file{cursor:pointer}
+.kt-wrap{position:relative;overflow:hidden}
+.kt-head{padding:22px 32px 8px}
+.kt-head h1{font:300 26px var(--font-ui);margin:0 0 4px;color:var(--ink)}
+.kt-meta{color:var(--ink-3);font:12px var(--font-ui)}
+.kt-sheet{display:inline-block;min-width:100%}`,
+
+  /* ---------------------------------------------------------- Webseite */
+  async toHtml(tree, list, name, o, prog) {
+    const snaps = await this.snapshots(list, prog);
+    prog.set('Webseite wird erstellt …', 1);
+    const css = await this.appCss();
+    const multi = snaps.length > 1;
+    let nav = '';
+    if (multi) {
+      const walk = (gs) => gs.map(g => `<li class="k-${g.kind}"><span class="kt-g">${g.kind === 'section' || g.kind === 'quick' ? `<i style="background:${escapeHtml(g.color || '#8a8886')}"></i>` : ''}${escapeHtml(g.name)}</span>` +
+        (g.pages.length ? `<ul class="kt-pages">${g.pages.map(pid => `<li class="lv${Store.pages[pid].level || 0}"><a href="#s-${escapeHtml(pid)}">${escapeHtml(Store.pages[pid].title || 'Unbenannte Seite')}</a></li>`).join('')}</ul>` : '') +
+        (g.groups.length ? `<ul>${walk(g.groups)}</ul>` : '') + '</li>').join('');
+      nav = `<nav class="kt-nav"><div class="kt-brand">${escapeHtml(name)}</div><ul class="kt-tree">${walk(tree)}</ul><div class="kt-foot">Exportiert aus KnowledgeTree · ${escapeHtml(fmtShortDate(Date.now()))}</div></nav>`;
+    }
+    const navCss = multi ? `
+body.kt-export{display:flex;min-height:100vh}
+.kt-nav{position:sticky;top:0;align-self:flex-start;width:260px;flex:none;height:100vh;overflow:auto;background:#faf9f8;border-right:1px solid var(--line);font:13px var(--font-ui);padding:14px 10px;box-sizing:border-box}
+.kt-brand{font-weight:600;font-size:15px;padding:2px 8px 10px}
+.kt-nav ul{list-style:none;margin:0;padding:0 0 0 12px}.kt-tree{padding:0!important}
+.kt-g{display:flex;align-items:center;gap:6px;padding:4px 8px;font-weight:600;color:var(--ink-2)}
+.kt-g i{width:10px;height:10px;border-radius:2px;flex:none}
+.kt-pages a{display:block;padding:4px 8px;border-radius:4px;color:var(--ink);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kt-pages a:hover{background:var(--hover)}.kt-pages a.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.kt-pages .lv1 a{padding-left:22px}.kt-pages .lv2 a{padding-left:36px}
+.kt-foot{color:var(--ink-3);font-size:11px;padding:16px 8px 4px}
+.kt-main{flex:1;min-width:0;overflow:auto}
+.kt-page{display:none}.kt-page.on{display:block}
+@media (max-width:760px){body.kt-export{display:block}.kt-nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}}
+@media print{.kt-nav{display:none}.kt-page{display:block!important;break-after:page}}` : '';
+    const script = multi ? `<script>
+(function(){var secs=[].slice.call(document.querySelectorAll('.kt-page')),links=[].slice.call(document.querySelectorAll('.kt-nav a'));
+function show(){var id=(location.hash||'').slice(1);var s=document.getElementById(id)||secs[0];secs.forEach(function(x){x.classList.toggle('on',x===s)});
+links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+s.id)});document.title=(s.getAttribute('data-title')||'')+' – ${escapeHtml(name).replace(/'/g, "\\'")}';window.scrollTo(0,0);}
+window.addEventListener('hashchange',show);show();})();
+<\/script>` : '';
+    const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(name)}</title>
+<meta name="generator" content="KnowledgeTree"><style>${css}${this.EXPORT_CSS}${navCss}</style></head>
+<body class="kt-export" data-theme="hell">${nav}<main class="kt-main">${snaps.map(s => this.pageHtml(s, o)).join('\n')}</main>${script}</body></html>`;
+    this.download(`${this.safe(name)}.html`, new Blob([html], { type: 'text/html' }));
+    UI.toast(`${snaps.length} Seite(n) als Webseite exportiert`, 3500);
+  },
+
+  /* ---------------------------------------------------------- PDF (Druckdialog) */
+  PAPER: { 'a4-hoch': [210, 297], 'a4-quer': [297, 210], 'a3-hoch': [297, 420], 'a3-quer': [420, 297], 'letter-hoch': [216, 279] },
+  async toPdf(list, name, o, prog) {
+    const snaps = await this.snapshots(list, prog);
+    prog.set('Druckansicht wird vorbereitet …', 1);
+    const css = await this.appCss();
+    const [pw, ph] = this.PAPER[o.paper] || this.PAPER['a4-hoch'];
+    const MARGIN = 12, PX = 96 / 25.4;
+    const availW = (pw - 2 * MARGIN) * PX, availH = (ph - 2 * MARGIN) * PX - (o.head ? 72 : 4);
+    const body = snaps.map(s => {
+      let z = 1;
+      if (o.fit === 'breite') z = Math.min(1, availW / s.W);
+      if (o.fit === 'blatt') z = Math.min(1, availW / s.W, availH / s.H);
+      return this.pageHtml(s, o, `zoom:${z.toFixed(4)}`);
+    }).join('\n');
+    const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${escapeHtml(name)}</title><style>${css}${this.EXPORT_CSS}
+@page{size:${pw}mm ${ph}mm;margin:${MARGIN}mm}
+body.kt-export{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.kt-head{padding:0 0 10px}.kt-head h1{font-size:22px}
+.kt-page{break-after:page}.kt-page:last-child{break-after:auto}
+.kt-sheet{display:block;min-width:0;width:max-content}
+.kt-world .box{box-shadow:none}
+</style></head><body class="kt-export" data-theme="hell">${body}</body></html>`;
+    await this.printHtml(html, name);
+  },
+  printHtml(html, name) {
+    return new Promise((resolve) => {
+      const ifr = el('iframe', { class: 'ex-print', title: 'Druckansicht' });
+      document.body.append(ifr);
+      let done = false;
+      const finish = () => { if (done) return; done = true; document.title = oldTitle; setTimeout(() => ifr.remove(), 500); resolve(); };
+      const oldTitle = document.title;
+      ifr.addEventListener('load', async () => {
+        const w = ifr.contentWindow;
+        try { await w.document.fonts.ready; } catch (e) { /* */ }
+        await this.waitImages(w.document.body);
+        document.title = this.safe(name);
+        w.addEventListener('afterprint', finish);
+        w.focus();
+        w.print();
+        // Chrome blockiert bis der Dialog zu ist; andere Browser nicht -> Rahmen erst später entfernen
+        setTimeout(finish, /firefox/i.test(navigator.userAgent) ? 120000 : 1000);
+      }, { once: true });
+      ifr.srcdoc = html;
+    });
+  },
+
+  /* ---------------------------------------------------------- OneNote */
+  async toOneNote(tree, name, prog) {
+    if (typeof OneWrite === 'undefined') throw new Error('OneNote-Export nicht verfügbar');
+    const files = await OneWrite.exportTree(tree, name, (t, f) => prog.set(t, f));
+    for (const f of files) this.download(f.name, new Blob([f.data], { type: 'application/octet-stream' }));
+    UI.toast(files.length === 1 ? `Als ${files[0].name} exportiert (OneNote, Beta)` : `${files.length} OneNote-Dateien exportiert (Beta)`, 5000);
+  },
 };
 
 </script>
@@ -7610,7 +8690,7 @@ const ON = (() => {
       if (lists.length) {
         const l = lists[0];
         const fmt = this.s(l, P.NumberListFormat);
-        block.list = { format: fmt, font: this.s(l, P.ListFont), restart: this.u(l, P.ListRestart), numbered: /[ \u0000-\u0008]/.test(fmt) || /%\d/.test(fmt) };
+        block.list = { format: fmt, font: this.s(l, P.ListFont), restart: this.u(l, P.ListRestart), numbered: /[�\u0000-\u0008]/.test(fmt) || /%\d/.test(fmt) };
       }
       const tags = props.get(P.NoteTagStates);
       if (Array.isArray(tags)) {
@@ -7707,6 +8787,11 @@ const ON = (() => {
       const fmts = this.list(props, P.TextRunFormatting).map(id => this.fmt(this.p(ctx.view, id)));
       const styleP = this.p(ctx.view, props.get(P.ParagraphStyle));
       const para = { type: 'p', style: styleP ? this.s(styleP, P.ParagraphStyleId) : '', base: this.fmt(styleP), runs: [], align: props.get(P.ParagraphAlignment) ?? null };
+      // Absatzabstände (Punkte): direkt am Absatz oder aus der Formatvorlage
+      for (const [k, n] of [[P.ParagraphSpaceBefore, 'before'], [P.ParagraphSpaceAfter, 'after'], [P.ParagraphLineSpacingExact, 'lineExact']]) {
+        const v = props.has(k) ? this.f(props, k) : styleP ? this.f(styleP, k) : 0;
+        if (v > 0 && v < 400) para[n] = v;
+      }
       const cuts = [0, ...bounds.filter(b => b > 0 && b < text.length), text.length];
       for (let i = 0; i < cuts.length - 1; i++) {
         const t = text.slice(cuts[i], cuts[i + 1]);
@@ -7717,10 +8802,10 @@ const ON = (() => {
       // Hyperlinks: Feldcode U+FDDF HYPERLINK "adresse" vor dem angezeigten Text
       let link = null;
       for (const r of para.runs) {
-        const m = / \s*HYPERLINK\s+"([^"]*)"/.exec(r.text);
+        const m = /﷟\s*HYPERLINK\s+"([^"]*)"/.exec(r.text);
         if (m) { link = m[1]; r.text = r.text.replace(m[0], ''); }
         if (r.link || r.url) r.href = r.url || link; else if (!m) link = null;
-        r.text = r.text.replace(/[ - ]/g, '');
+        r.text = r.text.replace(/[﷐-﷯]/g, '');
       }
       para.runs = para.runs.filter(r => r.text && !r.hidden);
       if (para.runs.some(r => r.math)) this.note('Formeln (als Text übernommen)');
@@ -7812,6 +8897,17 @@ const TAG_SYMBOLS = [
   [/besprech|discuss|diskut/i, '🗨'], [/termin|meeting|besprechung/i, '📅'], [/kunde|client/i, '🤝'],
 ];
 const TODO_RE = /aufgabe|to ?do|task|erledig|anruf|call|kauf|buy|e-?mail/i;
+/* Standard-Formatvorlagen von OneNote (gelten, wenn die Datei selbst nichts angibt) */
+const ON_STYLES = {
+  h1: { font: 'Calibri Light', size: 16, color: '#1e4e79' }, h2: { font: 'Calibri Light', size: 14, color: '#2e75b5' },
+  h3: { font: 'Calibri', size: 12, color: '#1f3763' }, h4: { font: 'Calibri', size: 12, color: '#2f5496', i: true },
+  h5: { font: 'Calibri', size: 11, color: '#2e75b5' }, h6: { font: 'Calibri', size: 11, color: '#2e75b5', i: true },
+  pagetitle: { font: 'Calibri Light', size: 20 }, cite: { size: 9, color: '#595959' }, quote: { i: true, color: '#595959' },
+  blockquote: { i: true, color: '#595959' }, code: { font: 'Consolas' }, p: { font: 'Calibri', size: 11 },
+};
+/* Platz, den Titel und Datum oben auf einer OneNote-Seite belegen (bei KnowledgeTree stehen sie über der Fläche) */
+const ON_TITLE_SPACE = 56;
+const fontCss = (f) => `font-family:&quot;${escapeHtml(f)}&quot;${/^calibri/i.test(f) ? ',Carlito' : ''},var(--font-note)`;
 
 const OneImport = {
   /* ---------------------------------------------------------- Start */
@@ -8037,37 +9133,44 @@ const OneImport = {
     p.level = pg.level || 0;
     p.bg = 'keiner';
     const items = pg.items.filter(it => it.kind !== 'unknown');
+    // Gleiche Lage wie in OneNote: alle Elemente behalten ihre Koordinaten (1 px = 1/96 Zoll).
+    // Nur der Titelbereich oben wird abgezogen, weil der Titel hier über der Fläche steht.
     let minX = Infinity, minY = Infinity;
-    for (const it of items) { minX = Math.min(minX, it.x || 0); minY = Math.min(minY, it.y || 0); }
+    for (const it of items) {
+      if (it.kind === 'ink') { for (const st of it.strokes || []) for (const v of st.pts) { if (v.x < minX) minX = v.x; if (v.y < minY) minY = v.y; } }
+      else { minX = Math.min(minX, it.x || 0); minY = Math.min(minY, it.y || 0); }
+    }
     if (minX === Infinity) minX = minY = 0;
+    const offX = Math.min(0, minX), offY = Math.min(ON_TITLE_SPACE, minY);
     let z = 1;
     const pad = PADX + BORDER;
+    const onStyle = { bg: 'transparent', lh: 'normal', on: 1 };
     for (const it of items) {
-      const x = Math.round((it.x || 0) - minX), y = Math.round((it.y || 0) - minY);
+      const x = Math.round(((it.x || 0) - offX) * 10) / 10, y = Math.round(((it.y || 0) - offY) * 10) / 10;
       if (it.kind === 'outline') {
         const ctx = { maxImg: 0 };
         const html = await this.blocksHtml(it.blocks, it, rep, stats, ctx);
-        if (isEmptyHtml(html) && !/<img|kt-file/.test(html)) continue;
-        const w = Math.round(Math.max(it.w || 0, ctx.maxImg, 80) || 480) + 2 * pad;
-        p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w, html, images: [], z: z++, style: { bg: 'transparent' }, locked: false, pkg: null });
+        if (isEmptyHtml(html) && !/<img|kt-file|kt-math/.test(html)) continue;
+        const w = Math.round(Math.max(it.w || 0, ctx.maxImg, 40) || 480) + 2 * pad;
+        p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w, html, images: [], z: z++, style: { ...onStyle }, locked: false, pkg: null });
       } else if (it.kind === 'image') {
         if (it.missing) continue;
         const name = await this.saveBlob(it.data, it.mime, (it.ext || '').replace('.', ''), true);
         stats.images++;
         const w = Math.round(it.w || 200), h = Math.round(it.h || 150);
         if (/^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(it.mime)) {
-          p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: w + 2 * pad, html: '', images: [{ id: uid('i'), src: name, x: 0, y: 0, w, h }], z: it.background ? 0 : z++, style: { bg: 'transparent' }, locked: !!it.background, pkg: null });
+          p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: w + 2 * pad, html: '', images: [{ id: uid('i'), src: name, x: 0, y: 0, w, h }], z: it.background ? 0 : z++, style: { ...onStyle }, locked: !!it.background, pkg: null });
         } else {
-          p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: 260, html: this.fileChip(name, (it.name || 'Bild') + (it.ext && !/\.\w+$/.test(it.name || '') ? it.ext : '')), images: [], z: z++, style: { bg: 'transparent' }, locked: false, pkg: null });
+          p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: 260, html: this.fileChip(name, (it.name || 'Bild') + (it.ext && !/\.\w+$/.test(it.name || '') ? it.ext : '')), images: [], z: z++, style: { ...onStyle }, locked: false, pkg: null });
         }
       } else if (it.kind === 'file') {
         if (it.missing) continue;
         const name = await this.saveBlob(it.data, it.mime, (it.name.split('.').pop() || 'bin'), false);
         stats.files++;
-        p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: 280, html: this.fileChip(name, it.name), images: [], z: z++, style: { bg: 'transparent' }, locked: false, pkg: null });
+        p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: 280, html: this.fileChip(name, it.name), images: [], z: z++, style: { ...onStyle }, locked: false, pkg: null });
       } else if (it.kind === 'ink' && Array.isArray(it.strokes)) {
         for (const s of it.strokes) {
-          const X = (v) => Math.round((v - minX) * 10) / 10, Y = (v) => Math.round((v - minY) * 10) / 10;
+          const X = (v) => Math.round((v - offX) * 10) / 10, Y = (v) => Math.round((v - offY) * 10) / 10;
           const color = s.color || '#1f1f1f', w = Math.max(0.5, s.w || 2);
           if (it.shape && !s.marker && s.pts.length >= 2) {
             // OneNote-Form: Ecken bleiben scharf
@@ -8128,7 +9231,8 @@ const OneImport = {
         continue;
       }
       closeTo(-1, '', '');
-      const ind = b.depth ? (outline.indents[b.depth] || b.depth * 28) : 0;
+      let ind = 0;
+      for (let k = 1; k <= b.depth; k++) ind += outline.indents[k] > 0 ? outline.indents[k] : 36;
       out += ind ? `<div style="margin-left:${Math.round(ind)}px">${inner}</div>` : inner;
     }
     closeTo(-1, '', '');
@@ -8180,27 +9284,43 @@ const OneImport = {
   },
   imgHtml(name, c, ctx, stats) {
     stats.images++;
-    const w = Math.round(c.w || 0);
+    const w = Math.round(c.w || 0), h = Math.round(c.h || 0);
     ctx.maxImg = Math.max(ctx.maxImg, w);
-    return `<div><img data-kt-src="${escapeHtml(name)}" alt="${escapeHtml(c.alt || '')}"${w ? ` style="width:${w}px"` : ''}></div>`;
+    const css = w ? `width:${w}px${h ? `;height:${h}px` : ''}` : '';
+    return `<div><img data-kt-src="${escapeHtml(name)}" alt="${escapeHtml(c.alt || '')}"${css ? ` style="${css}"` : ''}></div>`;
   },
   paraHtml(p) {
     const style = (p.style || '').toLowerCase();
-    const heading = /^h[1-6]$/.test(style) ? (style > 'h3' ? 'h3' : style) : null;
+    const hm = /^h([1-6])$/.exec(style);
+    const tag = hm ? 'h' + hm[1] : style === 'code' ? 'pre' : 'div';
+    // Absatzformat = OneNote-Standard der Vorlage, überschrieben durch die Angaben in der Datei
+    const def = ON_STYLES[style] || ON_STYLES.p;
+    const base = { ...def };
+    for (const [k, v] of Object.entries(p.base || {})) if (v !== undefined && v !== '' && (v !== null || k === 'color')) base[k] = v;
+    const pcss = [];
+    if (base.font && !/^calibri$/i.test(base.font)) pcss.push(fontCss(base.font));
+    if (base.size && base.size !== 11) pcss.push(`font-size:${base.size}pt`);
+    if (base.color) pcss.push(`color:${base.color}`);
+    if (base.b) pcss.push('font-weight:bold');
+    if (base.i) pcss.push('font-style:italic');
+    if (p.before) pcss.push(`margin-top:${+p.before.toFixed(2)}pt`);
+    if (p.after) pcss.push(`margin-bottom:${+p.after.toFixed(2)}pt`);
+    if (p.lineExact) pcss.push(`line-height:${+p.lineExact.toFixed(2)}pt`);
+    if (p.align === 1) pcss.push('text-align:center');
+    if (p.align === 2) pcss.push('text-align:right');
     let inner = '';
     for (const r of p.runs) {
       let t = escapeHtml(r.text).replace(/\r\n|\r|\n|\u000b/g, '<br>').replace(/\t/g, '&emsp;');
       const css = [];
-      const font = r.font || (!heading && p.base && p.base.font) || '';
-      const size = r.size || (!heading && p.base && p.base.size) || 0;
-      if (font && !/^calibri$/i.test(font)) css.push(`font-family:&quot;${escapeHtml(font)}&quot;`);
-      if (size && size !== 11 && !heading) css.push(`font-size:${size}pt`);
-      if (r.color) css.push(`color:${r.color}`);
+      if (r.font && r.font !== base.font) css.push(fontCss(r.font));
+      if (r.size && r.size !== base.size) css.push(`font-size:${r.size}pt`);
+      if (r.color && r.color !== base.color) css.push(`color:${r.color}`);
       if (r.hl) css.push(`background-color:${r.hl}`);
-      if (r.math) css.push('font-family:&quot;Cambria Math&quot;,serif');
+      if (r.math) css.push('font-family:&quot;Cambria Math&quot;,&quot;STIX Two Math&quot;,serif');
       if (css.length) t = `<span style="${css.join(';')}">${t}</span>`;
-      if (r.b) t = `<b>${t}</b>`;
-      if (r.i) t = `<i>${t}</i>`;
+      if (r.b && !base.b) t = `<b>${t}</b>`;
+      if (r.b === false && base.b) t = `<span style="font-weight:normal">${t}</span>`;
+      if (r.i && !base.i) t = `<i>${t}</i>`;
       if (r.u) t = `<u>${t}</u>`;
       if (r.s) t = `<strike>${t}</strike>`;
       if (r.sup) t = `<sup>${t}</sup>`;
@@ -8209,15 +9329,988 @@ const OneImport = {
       inner += t;
     }
     if (!inner) inner = '<br>';
-    const align = p.align === 1 ? 'center' : p.align === 2 ? 'right' : null;
-    const st = align ? ` style="text-align:${align}"` : '';
-    if (heading) return `<${heading}${st}>${inner}</${heading}>`;
-    if (style === 'code') return `<pre${st}>${inner}</pre>`;
-    if (style === 'blockquote' || style === 'quote') return `<blockquote${st}>${inner}</blockquote>`;
-    if (style === 'cite') return `<div${st}><i>${inner}</i></div>`;
-    return `<div${st}>${inner}</div>`;
+    return `<${tag}${pcss.length ? ` style="${pcss.join(';')}"` : ''}>${inner}</${tag}>`;
   },
 };
+
+</script>
+<script>
+/* ---- js/onenote-write.js ---- */
+'use strict';
+/* OneNote-Dateien schreiben (Beta): Abschnitt (.one), Inhaltsverzeichnis (.onetoc2) und Notizbuch-Paket (.onepkg).
+ * Aufbau nach [MS-ONESTORE] und [MS-ONE], nachgebildet an echten Dateien von OneNote (Microsoft 365).
+ * Teil 1: Binärformat (unabhängig vom Browser, auch unter Node testbar)
+ * Teil 2: KnowledgeTree-Seiten -> OneNote-Seiten (braucht die gerenderte Seite im Browser) */
+
+const OneWrite = (() => {
+  /* ================================================================ Hilfen */
+  const rnd = (n) => { const a = new Uint8Array(n); (globalThis.crypto || require('crypto').webcrypto).getRandomValues(a); return a; };
+  const newGuid = () => {
+    const b = rnd(16);
+    b[7] = (b[7] & 0x0F) | 0x40; b[8] = (b[8] & 0x3F) | 0x80;
+    const h = [...b].map(x => x.toString(16).padStart(2, '0'));
+    // Darstellung wie in der Datei gelesen (Data1-3 little endian)
+    return `{${h[3]}${h[2]}${h[1]}${h[0]}-${h[5]}${h[4]}-${h[7]}${h[6]}-${h[8]}${h[9]}-${h.slice(10).join('')}}`.toUpperCase();
+  };
+  const guidBytes = (g) => {
+    const s = g.replace(/[{}-]/g, '');
+    const b = new Uint8Array(16);
+    const hx = (i) => parseInt(s.substr(i * 2, 2), 16);
+    b[0] = hx(3); b[1] = hx(2); b[2] = hx(1); b[3] = hx(0); b[4] = hx(5); b[5] = hx(4); b[6] = hx(7); b[7] = hx(6);
+    for (let i = 8; i < 16; i++) b[i] = hx(i);
+    return b;
+  };
+  const NIL = '{00000000-0000-0000-0000-000000000000}';
+
+  let CRC_T = null;
+  const crc32 = (u8, crc = 0) => {
+    if (!CRC_T) { CRC_T = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; CRC_T[i] = c >>> 0; } }
+    let c = (crc ^ 0xFFFFFFFF) >>> 0;
+    for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  };
+  /* MD5 nach RFC 1321 (für schreibgeschützte Objekte) */
+  const md5 = (msg) => {
+    const K = new Uint32Array(64), S = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
+    for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 2 ** 32) >>> 0;
+    const len = msg.length, nb = ((len + 8) >>> 6) + 1;
+    const m = new Uint8Array(nb * 64);
+    m.set(msg); m[len] = 0x80;
+    const dv = new DataView(m.buffer);
+    dv.setUint32(nb * 64 - 8, (len * 8) >>> 0, true); dv.setUint32(nb * 64 - 4, Math.floor(len / 0x20000000), true);
+    let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+    for (let o = 0; o < m.length; o += 64) {
+      let A = a0, B = b0, C = c0, D = d0;
+      for (let i = 0; i < 64; i++) {
+        let F, g;
+        if (i < 16) { F = (B & C) | (~B & D); g = i; } else if (i < 32) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; } else if (i < 48) { F = B ^ C ^ D; g = (3 * i + 5) % 16; } else { F = C ^ (B | ~D); g = (7 * i) % 16; }
+        F = (F + A + K[i] + dv.getUint32(o + g * 4, true)) >>> 0;
+        A = D; D = C; C = B;
+        const sh = S[(i >> 4) * 4 + (i & 3)];
+        B = (B + ((F << sh) | (F >>> (32 - sh)))) >>> 0;
+      }
+      a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+    }
+    const out = new Uint8Array(16), ov = new DataView(out.buffer);
+    ov.setUint32(0, a0, true); ov.setUint32(4, b0, true); ov.setUint32(8, c0, true); ov.setUint32(12, d0, true);
+    return out;
+  };
+  const utf16z = (s) => { const b = new Uint8Array((s.length + 1) * 2); for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); b[i * 2] = c & 0xFF; b[i * 2 + 1] = c >> 8; } return b; };
+  const utf16 = (s) => utf16z(s).subarray(0, s.length * 2);
+  const CP1252_EXTRA = '€\u0081‚ƒ„…†‡ˆ‰Š‹Œ\u008DŽ\u008F\u0090‘’“”•–—˜™š›œ\u009DžŸ';
+  const toCp1252 = (s) => {
+    const b = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      if (c < 0x80 || (c >= 0xA0 && c <= 0xFF)) b[i] = c;
+      else { const k = CP1252_EXTRA.indexOf(s[i]); if (k < 0) return null; b[i] = 0x80 + k; }
+    }
+    return b;
+  };
+  const f32 = (v) => { const b = new Uint8Array(4); new DataView(b.buffer).setFloat32(0, v, true); return b; };
+  const u32b = (v) => { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, v >>> 0, true); return b; };
+  const u64b = (v) => { const b = new Uint8Array(8); const dv = new DataView(b.buffer); dv.setUint32(0, Number(BigInt(v) & 0xFFFFFFFFn), true); dv.setUint32(4, Number(BigInt(v) >> 32n), true); return b; };
+  const fileTime = (ms) => u64b((BigInt(Math.round(ms)) + 11644473600000n) * 10000n);
+  const time32 = (ms) => u32b(Math.max(0, Math.floor(ms / 1000) - 315532800));
+  const colorRef = (hex) => { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || ''); return m ? new Uint8Array([parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16), 0]) : new Uint8Array([0, 0, 0, 0xFF]); };
+
+  class Out {
+    constructor(cap = 4096) { this.b = new Uint8Array(cap); this.dv = new DataView(this.b.buffer); this.n = 0; }
+    need(k) { if (this.n + k <= this.b.length) return; let c = this.b.length * 2; while (c < this.n + k) c *= 2; const nb = new Uint8Array(c); nb.set(this.b.subarray(0, this.n)); this.b = nb; this.dv = new DataView(nb.buffer); }
+    u8(v) { this.need(1); this.b[this.n++] = v & 0xFF; return this; }
+    u16(v) { this.need(2); this.dv.setUint16(this.n, v, true); this.n += 2; return this; }
+    u32(v) { this.need(4); this.dv.setUint32(this.n, v >>> 0, true); this.n += 4; return this; }
+    u64(v) { this.bytes(u64b(v)); return this; }
+    bytes(a) { this.need(a.length); this.b.set(a, this.n); this.n += a.length; return this; }
+    guid(g) { return this.bytes(guidBytes(g)); }
+    eg(x) { this.guid(x ? x.g : NIL); return this.u32(x ? x.n : 0); }
+    zeros(k) { this.need(k); this.b.fill(0, this.n, this.n + k); this.n += k; return this; }
+    align(a) { const r = this.n % a; if (r) this.zeros(a - r); return this; }
+    done() { return this.b.slice(0, this.n); }
+  }
+
+  /* ================================================================ Objekte und Eigenschaften */
+  const T = { noData: 1, bool: 2, u8: 3, u16: 4, b4: 5, b8: 6, bytes: 7, oid: 8, oids: 9, osid: 10, osids: 11, ctx: 12, ctxs: 13, propArr: 16, propSet: 17 };
+  const ptype = (id) => (id >>> 26) & 0x1F;
+  /* Objekt: { oid:{g,n}, jcid, props:[[id,value]], ro, file } */
+  class Obj {
+    constructor(space, jcid, props = []) { this.space = space; this.jcid = jcid; this.props = props; this.oid = space ? space.nextOid() : null; this.ro = !!(jcid & 0x00100000); }
+    set(id, v) { const i = this.props.findIndex(p => p[0] === id); if (i >= 0) this.props[i][1] = v; else this.props.push([id, v]); return this; }
+  }
+  /* Eigenschaften -> ObjectSpaceObjectPropSet (Ströme + Eigenschaften + Füllbytes) */
+  function propSetBytes(props, table) {
+    const oids = [], osids = [], ctxs = [];
+    const cid = (x) => {
+      if (!x) return 0;
+      const idx = table.get(x.g);
+      if (idx === undefined) throw new Error('GUID fehlt in der Tabelle: ' + x.g);
+      if (x.n > 255) throw new Error('Objektnummer zu gross');
+      return ((idx << 8) | x.n) >>> 0;
+    };
+    const body = new Out(256);
+    const writeSet = (list) => {
+      body.u16(list.length);
+      for (const [id, v] of list) {
+        let pid = id & 0x7FFFFFFF;
+        if (ptype(id) === T.bool && v) pid |= 0x80000000;
+        body.u32(pid >>> 0);
+      }
+      for (const [id, v] of list) {
+        switch (ptype(id)) {
+          case T.noData: case T.bool: break;
+          case T.u8: body.u8(v); break;
+          case T.u16: body.u16(v); break;
+          case T.b4: body.bytes(v instanceof Uint8Array ? v : u32b(v)); break;
+          case T.b8: body.bytes(v); break;
+          case T.bytes: body.u32(v.length).bytes(v); break;
+          case T.oid: oids.push(cid(v && v.oid)); break;
+          case T.oids: body.u32(v.length); for (const o of v) oids.push(cid(o.oid)); break;
+          case T.osid: osids.push(cid(v)); break;
+          case T.osids: body.u32(v.length); for (const o of v) osids.push(cid(o)); break;
+          case T.ctx: ctxs.push(cid(v)); break;
+          case T.ctxs: body.u32(v.length); for (const o of v) ctxs.push(cid(o)); break;
+          case T.propArr: body.u32(v.length); if (v.length) { body.u32(0x44000000 | 0); for (const s of v) writeSet(s); } break;
+          case T.propSet: writeSet(v); break;
+          default: throw new Error('Eigenschaftstyp ' + ptype(id));
+        }
+      }
+    };
+    writeSet(props);
+    const o = new Out(body.n + 64);
+    const hasOsid = osids.length > 0 || ctxs.length > 0;
+    o.u32((oids.length & 0xFFFFFF) | (hasOsid ? 0 : 0x80000000));
+    for (const c of oids) o.u32(c);
+    if (hasOsid) { o.u32((osids.length & 0xFFFFFF) | (ctxs.length ? 0x40000000 : 0)); for (const c of osids) o.u32(c); }
+    if (ctxs.length) { o.u32(ctxs.length & 0xFFFFFF); for (const c of ctxs) o.u32(c); }
+    o.bytes(body.done());
+    o.align(8);
+    return { data: o.done(), hasOids: oids.length > 0, hasOsids: osids.length > 0 };
+  }
+  /* alle GUIDs, die ein Objekt braucht */
+  function collectGuids(obj, set) {
+    if (obj.oid) set.add(obj.oid.g);
+    const walk = (list) => {
+      for (const [id, v] of list) {
+        const t = ptype(id);
+        if (t === T.oid && v) set.add(v.oid.g);
+        else if (t === T.oids) v.forEach(o => set.add(o.oid.g));
+        else if (t === T.osid || t === T.ctx) { if (v) set.add(v.g); }
+        else if (t === T.osids || t === T.ctxs) v.forEach(o => set.add(o.g));
+        else if (t === T.propArr) v.forEach(walk);
+        else if (t === T.propSet) walk(v);
+      }
+    };
+    walk(obj.props);
+  }
+  function refsOf(obj) {
+    const out = [];
+    const walk = (list) => { for (const [id, v] of list) { const t = ptype(id); if (t === T.oid && v) out.push(v); else if (t === T.oids) out.push(...v); else if (t === T.propArr) v.forEach(walk); else if (t === T.propSet) walk(v); } };
+    walk(obj.props);
+    return out;
+  }
+
+  /* Objektraum (Abschnitt, Seite, Inhaltsverzeichnis) */
+  class Space {
+    constructor() { this.gosid = { g: newGuid(), n: 1 }; this.objs = []; this.roots = []; this._g = newGuid(); this._n = 10; this.files = []; }
+    nextOid() { if (this._n > 250) { this._g = newGuid(); this._n = 1; } return { g: this._g, n: this._n++ }; }
+    add(jcid, props) { const o = new Obj(this, jcid, props); this.objs.push(o); return o; }
+    root(role, obj) { this.roots.push([role, obj]); }
+  }
+
+  /* ================================================================ Datei zusammensetzen */
+  const FND = {
+    OSMRoot: 0x004, OSMListRef: 0x008, OSMListStart: 0x00C, RevListRef: 0x010, RevListStart: 0x014, RevStart4: 0x01B, RevEnd: 0x01C, RevStart6: 0x01E,
+    GidStart: 0x021, GidStart2: 0x022, GidEntry: 0x024, GidEnd: 0x028, DeclRef: 0x02D, RootRef2: 0x059, RootRef3: 0x05A,
+    DeclFile3: 0x072, FdsListRef: 0x090, FdsObjRef: 0x094, Decl2: 0x0A4, GroupListRef: 0x0B0, GroupStart: 0x0B4, GroupEnd: 0x0B8,
+    DataSig: 0x08C, RoDecl2: 0x0C4,
+  };
+  class FileBuilder {
+    constructor(legacy) {
+      this.legacy = legacy;
+      this.out = new Out(64 * 1024);
+      this.out.zeros(1024);
+      this.listId = 0x10;
+      this.counts = [];
+    }
+    chunk(bytes) { this.out.align(8); const stp = this.out.n; this.out.bytes(bytes); return { stp, cb: bytes.length }; }
+    /* Dateiknoten: id, Grundtyp, Verweis, Inhalt */
+    node(id, body, ref) {
+      const o = new Out(64);
+      const base = ref ? ref.base : 0;
+      const refLen = ref ? 8 : 0;
+      const size = 4 + refLen + (body ? body.length : 0);
+      // StpFormat 1 (4 Byte), CbFormat 0 (4 Byte)
+      const h = (id & 0x3FF) | ((size & 0x1FFF) << 10) | ((ref ? 1 : 0) << 23) | (0 << 25) | ((base & 0xF) << 27);
+      o.u32(h >>> 0);
+      if (ref) { o.u32(ref.stp < 0 ? 0xFFFFFFFF : ref.stp); o.u32(ref.cb); }
+      if (body) o.bytes(body);
+      return o.done();
+    }
+    list(nodes) {
+      const id = this.listId++;
+      const o = new Out(256);
+      o.u32(0xF5F7F4C4).u32(0xA4567AB1).u32(id).u32(0);
+      for (const n of nodes) o.bytes(n);
+      o.align(8);
+      o.u32(0xFFFFFFFF).u32(0xFFFFFFFF).u32(0); // nextFragment = fcrNil
+      o.u32(0x8233BA4B).u32(0x8BC215C3);
+      this.counts.push([id, nodes.length]);
+      return this.chunk(o.done());
+    }
+    b(fn) { const o = new Out(64); fn(o); return o.done(); }
+
+    /* ein Objektraum mit einer Revision */
+    space(sp, fileStore) {
+      const legacy = this.legacy;
+      // Objektdaten
+      const guids = new Set();
+      for (const o of sp.objs) collectGuids(o, guids);
+      const table = new Map([...guids].map((g, i) => [g, i]));
+      const refCount = new Map();
+      for (const o of sp.objs) for (const r of refsOf(o)) refCount.set(r, (refCount.get(r) || 0) + 1);
+      for (const [, o] of sp.roots) refCount.set(o, (refCount.get(o) || 0) + 1);
+      const cid = (x) => ((table.get(x.g) << 8) | x.n) >>> 0;
+      const decls = [];
+      for (const o of sp.objs) {
+        const cRef = Math.min(255, Math.max(1, refCount.get(o) || 1));
+        if (o.file) {
+          decls.push(this.node(FND.DeclFile3, this.b(w => {
+            w.u32(cid(o.oid)).u32(o.jcid).u8(cRef);
+            const ref = utf16(o.file.ref), ext = utf16(o.file.ext || '');
+            w.u32(o.file.ref.length).bytes(ref).u32((o.file.ext || '').length).bytes(ext);
+          })));
+          continue;
+        }
+        const ps = propSetBytes(o.props, table);
+        const ref = this.chunk(ps.data);
+        if (legacy) {
+          // ObjectDeclarationWithRefCountFND (nur Inhaltsverzeichnis): jci 10 Bit, Flags in Bit 16/17
+          decls.push(this.node(FND.DeclRef, this.b(w => {
+            w.u32(cid(o.oid));
+            w.u16(o.jcid & 0x3FF);
+            w.u16((ps.hasOids ? 1 : 0) | (ps.hasOsids ? 2 : 0)).u16(0);
+            w.u8(cRef);
+          }), { ...ref, base: 1 }));
+        } else {
+          decls.push(this.node(o.ro ? FND.RoDecl2 : FND.Decl2, this.b(w => {
+            w.u32(cid(o.oid)).u32(o.jcid).u8((ps.hasOids ? 1 : 0) | (ps.hasOsids ? 2 : 0)).u8(cRef);
+            if (o.ro) w.bytes(md5(ps.data));
+          }), { ...ref, base: 1 }));
+        }
+      }
+      const tableNodes = [];
+      tableNodes.push(legacy ? this.node(FND.GidStart, new Uint8Array([0])) : this.node(FND.GidStart2));
+      for (const [g, i] of table) tableNodes.push(this.node(FND.GidEntry, this.b(w => w.u32(i).guid(g))));
+      tableNodes.push(this.node(FND.GidEnd));
+      const sig = this.node(FND.DataSig, this.b(w => w.eg({ g: newGuid(), n: 1 })));
+      const rid = { g: newGuid(), n: 1 };
+      const rev = [this.node(FND.RevListStart, this.b(w => w.eg(sp.gosid).u32(0)))];
+      if (legacy) {
+        rev.push(this.node(FND.RevStart4, this.b(w => w.eg(rid).eg(null).u64(BigInt(Date.now()) * 10000n + 116444736000000000n).u32(1).u16(0))));
+        rev.push(...tableNodes, sig, ...decls);
+        for (const [role, o] of sp.roots) rev.push(this.node(FND.RootRef2, this.b(w => w.u32(cid(o.oid)).u32(role))));
+      } else {
+        const gid = { g: newGuid(), n: 1 };
+        const group = this.list([this.node(FND.GroupStart, this.b(w => w.eg(gid))), ...tableNodes, sig, ...decls, this.node(FND.GroupEnd)]);
+        rev.push(this.node(FND.RevStart6, this.b(w => w.eg(rid).eg(null).u32(1).u16(0))));
+        rev.push(this.node(FND.GroupListRef, this.b(w => w.eg(gid)), { ...group, base: 2 }));
+        for (const [role, o] of sp.roots) rev.push(this.node(FND.RootRef3, this.b(w => w.eg(o.oid).u32(role))));
+      }
+      rev.push(this.node(FND.RevEnd));
+      const revList = this.list(rev);
+      const spList = this.list([this.node(FND.OSMListStart, this.b(w => w.eg(sp.gosid))), this.node(FND.RevListRef, null, { ...revList, base: 2 })]);
+      void fileStore;
+      return this.node(FND.OSMListRef, this.b(w => w.eg(sp.gosid)), { ...spList, base: 2 });
+    }
+
+    /* Bilder und Anhänge: FileDataStoreObject */
+    fileStore(files) {
+      if (!files.length) return null;
+      const nodes = [];
+      for (const f of files) {
+        const o = new Out(f.data.length + 64);
+        o.guid('{BDE316E7-2665-4511-A4C4-8D4D0B7A9EAC}').u64(f.data.length).u32(0).u64(0).bytes(f.data).align(8).guid('{71FBA722-0F79-4A0B-BB13-899256426B24}');
+        const ref = this.chunk(o.done());
+        nodes.push(this.node(FND.FdsObjRef, this.b(w => w.guid(f.guid)), { ...ref, base: 1 }));
+      }
+      return this.node(FND.FdsListRef, null, { ...this.list(nodes), base: 2 });
+    }
+
+    finish(rootSpace, spaces, files, fileType) {
+      const spaceNodes = spaces.map(sp => this.space(sp));
+      const rootIdx = spaces.indexOf(rootSpace);
+      const rootNodes = [spaceNodes[rootIdx], this.node(FND.OSMRoot, this.b(w => w.eg(rootSpace.gosid)))];
+      spaceNodes.forEach((n, i) => { if (i !== rootIdx) rootNodes.push(n); });
+      const fds = this.fileStore(files || []);
+      if (fds) rootNodes.push(fds);
+      const rootList = this.list(rootNodes);
+      // Transaktions-Log: eine Transaktion mit allen Listen
+      const log = new Out(this.counts.length * 8 + 32);
+      for (const [id, c] of this.counts) log.u32(id).u32(c);
+      log.u32(1).u32(crc32(log.done()));
+      log.u32(0).u32(0).u32(0); // nextFragment = fcrZero
+      const txl = this.chunk(log.done());
+      this.out.align(8);
+      const total = this.out.n;
+      // Kopf
+      const h = new Out(1024);
+      h.guid(fileType).guid(newGuid()).guid(NIL).guid('{109ADD3F-911B-49F5-A5D0-1791EDC8AED8}');
+      const ffv = this.legacy ? 0x1B : 0x2A;
+      h.u32(ffv).u32(ffv).u32(ffv).u32(ffv);
+      h.u32(0).u32(0);                 // fcrLegacyFreeChunkList (fcrZero)
+      h.u32(0xFFFFFFFF).u32(0);        // fcrLegacyTransactionLog (fcrNil)
+      h.u32(1);                        // cTransactionsInLog
+      h.u32(0);                        // cbLegacyExpectedFileLength
+      h.u64(0);                        // rgbPlaceholder
+      h.u32(0xFFFFFFFF).u32(0);        // fcrLegacyFileNodeListRoot (fcrNil)
+      h.u32(0);                        // cbLegacyFreeSpaceInFreeChunkList
+      h.u8(0).u8(0).u8(0).u8(0);       // fNeedsDefrag, fRepairedFile, fNeedsGarbageCollect, fHasNoEmbeddedFileObjects
+      h.guid(NIL);                     // guidAncestor
+      h.u32(0);                        // crcName
+      h.u64(0xFFFFFFFFFFFFFFFFn).u32(0); // fcrHashedChunkList (fcrNil)
+      h.u64(txl.stp).u32(txl.cb);      // fcrTransactionLog
+      h.u64(rootList.stp).u32(rootList.cb); // fcrFileNodeListRoot
+      h.u64(0xFFFFFFFFFFFFFFFFn).u32(0); // fcrFreeChunkList (fcrNil)
+      h.u64(total);                    // cbExpectedFileLength
+      h.u64(0);                        // cbFreeSpaceInFreeChunkList
+      h.guid(newGuid());               // guidFileVersion
+      h.u64(1);                        // nFileVersionGeneration
+      h.guid(newGuid());               // guidDenyReadFileVersion
+      h.u32(0);                        // grfDebugLogFlags
+      h.u64(0).u32(0);                 // fcrDebugLog
+      h.u64(0).u32(0);                 // fcrAllocVerificationFreeChunkList
+      h.u32(0x3AB8F666).u32(0x3AB8F666).u32(0x3AB8F666).u32(0x3AB8F666); // bnCreated … bnNewestWritten
+      h.zeros(1024 - h.n);
+      const res = this.out.done();
+      res.set(h.done(), 0);
+      return res;
+    }
+  }
+
+  /* ================================================================ OneNote-Inhalte [MS-ONE] */
+  const P = {
+    LayoutTightLayout: 0x08001C00, PageWidth: 0x14001C01, PageHeight: 0x14001C02, OutlineElementChildLevel: 0x0C001C03,
+    Bold: 0x08001C04, Italic: 0x08001C05, Underline: 0x08001C06, Strikethrough: 0x08001C07, Superscript: 0x08001C08, Subscript: 0x08001C09,
+    Font: 0x1C001C0A, FontSize: 0x10001C0B, FontColor: 0x14001C0C, Highlight: 0x14001C0D, RgOutlineIndentDistance: 0x1C001C12,
+    OffsetFromParentHoriz: 0x14001C14, OffsetFromParentVert: 0x14001C15, LayoutMaxWidth: 0x14001C1B, LayoutMaxHeight: 0x14001C1C,
+    ContentChildNodes: 0x24001C1F, ElementChildNodes: 0x24001C20, RichEditTextUnicode: 0x1C001C22, NotebookManagementEntityGuid: 0x1C001C30,
+    OutlineElementRTL: 0x08001C34, LanguageID: 0x14001C3B, LayoutAlignmentInParent: 0x14001C3E, PictureContainer: 0x20001C3F,
+    PageMarginTop: 0x14001C4C, PageMarginBottom: 0x14001C4D, PageMarginLeft: 0x14001C4E, PageMarginRight: 0x14001C4F,
+    TopologyCreationTimeStamp: 0x18001C65, LayoutAlignmentSelf: 0x14001C84, IsTitleTime: 0x08001C87, IsBoilerText: 0x08001C88,
+    PortraitPage: 0x08001C8E, EnforceOutlineStructure: 0x08001C91, EditRootRTL: 0x08001C92, CannotBeSelected: 0x08001CB2,
+    IsTitleText: 0x08001CB4, IsTitleDate: 0x08001CB5, IsLayoutSizeSetByUser: 0x08001CBD, LayoutResolveChildCollisions: 0x08001CDC,
+    IsReadOnly: 0x08001CDE, LayoutMinimumOutlineWidth: 0x14001CEC, LayoutCollisionPriority: 0x14001CF1, CachedTitleString: 0x1C001CF3,
+    DescendantsCannotBeMoved: 0x08001CF9, RichEditTextLangID: 0x10001CFE, LayoutTightAlignment: 0x08001CFF, Charset: 0x0C001D01,
+    CreationTimeStamp: 0x14001D09, Deletable: 0x08001D0C, PageMarginOriginX: 0x14001D0F, PageMarginOriginY: 0x14001D10, IsBackground: 0x08001D13,
+    StructureElementChildNodes: 0x24001D5F, ChildGraphSpaceElementNodes: 0x2C001D63, AuthorName: 0x1C001D75, LastModifiedTimeStamp: 0x18001D77,
+    AuthorOriginal: 0x20001D78, AuthorMostRecent: 0x20001D79, LastModifiedTime: 0x14001D7A, SchemaRevisionInOrderToRead: 0x14001D82,
+    ImageFilename: 0x1C001DD7, AuthorInitials: 0x1C001DF8, PageLevel: 0x14001DFF, TextRunIndex: 0x1C001E12, TextRunFormatting: 0x24001E13,
+    Hyperlink: 0x08001E14, Hidden: 0x08001E16, HyperlinkProtected: 0x08001E19, WzHyperlinkUrl: 0x1C001E20, ImageAltText: 0x1C001E58,
+    MathFormatting: 0x08003401, ParagraphStyle: 0x2000342C, ParagraphSpaceBefore: 0x1400342E, ParagraphSpaceAfter: 0x1400342F,
+    ParagraphLineSpacingExact: 0x14003430, ParagraphStyleId: 0x1C00345A, ParagraphAlignment: 0x0C003477, TextExtendedAscii: 0x1C003498,
+    PictureWidth: 0x140034CD, PictureHeight: 0x140034CE,
+    // ohne Namen in [MS-ONE], Werte wie in echten Dateien
+    X1400348B: 0x1400348B, X080034DD: 0x080034DD, X080034AA: 0x080034AA, X0C003452: 0x0C003452, X08003405: 0x08003405, X08003406: 0x08003406,
+    X14001C9E: 0x14001C9E, X14001C9F: 0x14001C9F, X14001CA0: 0x14001CA0, X14001CA1: 0x14001CA1, X14001D5C: 0x14001D5C, X14003653: 0x14003653,
+    X1C001D5D: 0x1C001D5D, X1C001E30: 0x1C001E30,
+    // Tinte
+    InkData: 0x20003415, InkStrokes: 0x24003416, InkPath: 0x1C00340B, InkProps: 0x20003409, InkTime: 0x1C00341D, InkGuid: 0x1C00341A,
+    InkMetric: 0x1C00340A, InkWidth: 0x1400340C, InkHeight: 0x1400340D, InkColor: 0x1400340F, InkHighlighter: 0x08003411, InkTip: 0x0C003412,
+    InkRasterOp: 0x0C003413, InkKind: 0x14001D4E, InkLang: 0x1000341B, InkX0C00341C: 0x0C00341C, InkX0C003610: 0x0C003610,
+    // Inhaltsverzeichnis
+    TocChildren: 0x24001CF6, TocFileName: 0x1C001D6B, TocOrder: 0x14001CB9, TocColor: 0x14001CBE, TocGuid: 0x1C001D94,
+  };
+  const J = {
+    SectionNode: 0x00060007, PageSeriesNode: 0x00060008, PageNode: 0x0006000B, OutlineNode: 0x0006000C, OutlineElementNode: 0x0006000D,
+    RichTextOENode: 0x0006000E, ImageNode: 0x00060011, InkContainer: 0x00060014, TitleNode: 0x0006002C, PageManifestNode: 0x00060037,
+    PageMetaData: 0x00020030, SectionMetaData: 0x00020031, InkData: 0x0002003B, RevisionMetaData: 0x00020044, InkStroke: 0x00020047,
+    Author: 0x00120001, InkStrokeProperties: 0x00120048, ParagraphStyleObject: 0x0012004D, PictureContainer14: 0x00080039, TocEntry: 0x00020001,
+  };
+  const HI = 48;                // px je halber Zoll
+  const HIMETRIC = 2540 / 96;   // HIMETRIC je px
+  const LANG = 2055;            // Deutsch (Schweiz)
+  const GUID_X = '{598A6A8F-52C0-4BA0-93AF-AF357411A561}', GUID_Y = '{B53F9F75-04E0-4498-A7EE-C30DBB5A9011}', GUID_P = '{7307502D-F9F4-4E18-B3F2-2CE1B1A3610C}';
+  const AUTHOR = 'KnowledgeTree', INITIALS = 'KT';
+
+  /* Standard-Formatvorlagen (Absatz) wie OneNote */
+  const PARA_STYLES = {
+    p: { font: 'Calibri', size: 11 }, h1: { font: 'Calibri Light', size: 16, color: '#1e4e79' }, h2: { font: 'Calibri Light', size: 14, color: '#2e75b5' },
+    h3: { font: 'Calibri', size: 12, color: '#1f3763' }, h4: { font: 'Calibri', size: 12, color: '#2f5496', i: true }, h5: { font: 'Calibri', size: 11, color: '#2e75b5' },
+    h6: { font: 'Calibri', size: 11, color: '#2e75b5', i: true }, PageTitle: { font: 'Calibri Light', size: 20 }, PageDateTime: { font: 'Calibri', size: 10, color: '#767676' },
+    cite: { font: 'Calibri', size: 9, color: '#595959' }, quote: { font: 'Calibri', size: 11, color: '#595959', i: true }, code: { font: 'Consolas', size: 11 },
+  };
+
+  /* ISF: vorzeichenbehaftete Mehrbyte-Zahlen */
+  function isfPath(chans) {
+    const o = new Out(64);
+    const put = (v) => { let u = v < 0 ? (-v) * 2 + 1 : v * 2; do { let b = u % 128; u = Math.floor(u / 128); if (u) b |= 0x80; o.u8(b); } while (u); };
+    const total = chans.reduce((a, c) => a + c.length, 0);
+    put(total);
+    for (const c of chans) { let prev = 0; for (const v of c) { put(v - prev); prev = v; } }
+    return o.done();
+  }
+  function metric(withPressure) {
+    const o = new Out(96);
+    o.guid(GUID_X).u32(0x80000000).u32(0x7FFFFFFF).u32(2).bytes(f32(1000));
+    o.guid(GUID_Y).u32(0x80000000).u32(0x7FFFFFFF).u32(2).bytes(f32(1000));
+    if (withPressure) o.guid(GUID_P).u32(0).u32(32767).u32(0).bytes(f32(0));
+    return o.done();
+  }
+
+  /* Seite (Zwischenformat) -> Objektraum
+   * page = { title, created, modified, level, items: [
+   *   { kind:'outline', x, y, w, paras:[{ depth, style, align, runs:[{text,b,i,u,s,sup,sub,color,hl,font,size,href,math}], image? }] },
+   *   { kind:'image', x, y, w, h, fileGuid, ext, name },
+   *   { kind:'ink', strokes:[{ pts:[{x,y,p}], w, color, marker }] } ] }   (Koordinaten in px, Seitenursprung) */
+  function buildPage(page, files) {
+    const sp = new Space();
+    const now = page.modified || Date.now();
+    const T32 = time32(now), created = page.created || now;
+    const author = sp.add(J.Author, [[P.AuthorInitials, utf16z(INITIALS)], [P.AuthorName, utf16z(AUTHOR)], [P.X1C001E30, new Uint8Array(2)]]);
+    const manifest = sp.add(J.PageManifestNode);
+    const meta = sp.add(J.PageMetaData, [
+      [P.CachedTitleString, utf16z(page.title || '')], [P.NotebookManagementEntityGuid, guidBytes(newGuid())], [P.PageLevel, u32b((page.level || 0) + 1)],
+      [P.SchemaRevisionInOrderToRead, u32b(40)], [P.X1400348B, u32b(40)], [P.TopologyCreationTimeStamp, fileTime(created)],
+    ]);
+    const revMeta = sp.add(J.RevisionMetaData, [[P.AuthorMostRecent, author], [P.LastModifiedTimeStamp, fileTime(now)]]);
+    const styles = new Map(), runFmts = new Map();
+    const paraStyle = (id, fmt = {}) => {
+      const d = { ...(PARA_STYLES[id] || PARA_STYLES.p), ...fmt };
+      const key = id + JSON.stringify(d);
+      if (styles.has(key)) return styles.get(key);
+      const o = sp.add(J.ParagraphStyleObject, [
+        [P.ParagraphStyleId, utf16z(id)], [P.Bold, !!d.b], [P.Italic, !!d.i], [P.Underline, false], [P.FontColor, colorRef(d.color)],
+        [P.ParagraphSpaceBefore, f32(d.before || 0)], [P.ParagraphSpaceAfter, f32(d.after || 0)], [P.ParagraphLineSpacingExact, f32(d.lineExact || 0)],
+        [P.Strikethrough, false], [P.Highlight, colorRef(null)], [P.Subscript, false], [P.Superscript, false],
+        [P.Font, utf16z(d.font || 'Calibri')], [P.FontSize, Math.round((d.size || 11) * 2)],
+      ]);
+      styles.set(key, o);
+      return o;
+    };
+    const runFmt = (r) => {
+      const props = [[P.Hidden, false], [P.X080034AA, false], [P.Hyperlink, !!r.href], [P.HyperlinkProtected, false], [P.LanguageID, u32b(LANG)], [P.Charset, 0], [P.X0C003452, 0], [P.MathFormatting, false], [P.X08003405, false], [P.X08003406, false]];
+      if (r.b != null) props.push([P.Bold, !!r.b]);
+      if (r.i != null) props.push([P.Italic, !!r.i]);
+      if (r.u) props.push([P.Underline, true]);
+      if (r.s) props.push([P.Strikethrough, true]);
+      if (r.sup) props.push([P.Superscript, true]);
+      if (r.sub) props.push([P.Subscript, true]);
+      if (r.color) props.push([P.FontColor, colorRef(r.color)]);
+      if (r.hl) props.push([P.Highlight, colorRef(r.hl)]);
+      if (r.font) props.push([P.Font, utf16z(r.font)]);
+      if (r.size) props.push([P.FontSize, Math.round(r.size * 2)]);
+      const key = JSON.stringify(props.map(([k, v]) => [k, v instanceof Uint8Array ? [...v] : v]));
+      if (runFmts.has(key)) return runFmts.get(key);
+      const o = sp.add(J.ParagraphStyleObject, props);
+      runFmts.set(key, o);
+      return o;
+    };
+    const richText = (para, extra = []) => {
+      // Hyperlinks als Feld: U+FDDF HYPERLINK "adresse" + angezeigter Text
+      const runs = [];
+      for (const r of para.runs) {
+        if (!r.text) continue;
+        if (r.href) runs.push({ ...r, text: `﷟HYPERLINK "${r.href}"` });
+        runs.push(r);
+      }
+      const text = runs.map(r => r.text).join('');
+      const props = [[P.LastModifiedTime, T32], [P.ParagraphStyle, paraStyle(para.style || 'p', para.styleFmt)], ...extra];
+      if (para.align === 'center') props.push([P.ParagraphAlignment, 1]);
+      else if (para.align === 'right') props.push([P.ParagraphAlignment, 2]);
+      props.push([P.RichEditTextLangID, LANG]);
+      if (runs.length > 1) {
+        const idx = new Out(runs.length * 4);
+        let pos = 0;
+        for (let i = 0; i < runs.length - 1; i++) { pos += runs[i].text.length; idx.u32(pos); }
+        props.push([P.TextRunIndex, idx.done()]);
+      }
+      props.push([P.TextRunFormatting, (runs.length ? runs : [{}]).map(runFmt)]);
+      const cp = toCp1252(text);
+      if (cp && !/[﷟]/.test(text)) props.push([P.TextExtendedAscii, cp]);
+      else props.push([P.RichEditTextUnicode, utf16(text)]);
+      props.push([P.X080034DD, true]);
+      return sp.add(J.RichTextOENode, props);
+    };
+    const imageNode = (im, pos) => {
+      const props = [[P.LastModifiedTime, T32]];
+      if (pos) props.push([P.OffsetFromParentHoriz, f32(im.x / HI)], [P.OffsetFromParentVert, f32(im.y / HI)]);
+      if (im.fileGuid) {
+        const pc = sp.add(J.PictureContainer14);
+        pc.file = { ref: `<ifndf>${im.fileGuid}`, ext: im.ext || '.png' };
+        props.push([P.PictureContainer, pc]);
+      }
+      props.push([P.LayoutMaxWidth, f32(im.w / HI)], [P.LayoutMaxHeight, f32(im.h / HI)], [P.PictureWidth, f32(im.w / HI)], [P.PictureHeight, f32(im.h / HI)]);
+      if (im.name) props.push([P.ImageFilename, utf16z(im.name)]);
+      if (im.alt) props.push([P.ImageAltText, utf16z(im.alt)]);
+      return sp.add(J.ImageNode, props);
+    };
+    const oe = (content, kids, extra = []) => {
+      const props = [[P.LastModifiedTime, T32], [P.AuthorMostRecent, author], [P.AuthorOriginal, author], [P.CreationTimeStamp, time32(created)], [P.OutlineElementChildLevel, 1]];
+      if (content) props.push([P.ContentChildNodes, [content]]);
+      if (kids && kids.length) props.push([P.ElementChildNodes, kids]);
+      props.push(...extra, [P.OutlineElementRTL, false]);
+      return sp.add(J.OutlineElementNode, props);
+    };
+    const indents = new Uint8Array([4, 3, 0, 0, ...f32(0.5), ...f32(0), ...f32(0.75), ...f32(0.75)]);
+    // Titel
+    const titleOE = oe(richText({ style: 'PageTitle', runs: [{ text: page.title || '' }] }, [[P.IsTitleText, true]]), null, [[P.CannotBeSelected, true], [P.IsTitleText, true]]);
+    const titleOutline = sp.add(J.OutlineNode, [
+      [P.LastModifiedTime, T32], [P.ElementChildNodes, [titleOE]], [P.RgOutlineIndentDistance, indents], [P.OutlineElementChildLevel, 1],
+      [P.LayoutMaxHeight, f32(0.6)], [P.DescendantsCannotBeMoved, true], [P.CannotBeSelected, true], [P.IsTitleText, true], [P.EnforceOutlineStructure, true],
+      [P.LayoutMinimumOutlineWidth, f32(4.5)], [P.LayoutTightAlignment, true], [P.LayoutAlignmentInParent, u32b(0)], [P.LayoutAlignmentSelf, u32b(12)], [P.LayoutMaxWidth, f32(8.3125)],
+    ]);
+    const d = new Date(created);
+    const dateTxt = d.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const timeTxt = d.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+    const boiler = (flag) => [[P.IsReadOnly, true], [P.LayoutAlignmentInParent, u32b(1)], [P.LayoutAlignmentSelf, u32b(12)], [P.LayoutTightLayout, true], [P.IsBoilerText, true], [P.Deletable, true], [flag, true]];
+    const dateOE = oe(richText({ style: 'PageDateTime', runs: [{ text: dateTxt }] }, boiler(P.IsTitleDate)), null, [[P.CannotBeSelected, true], [P.Deletable, true]]);
+    const timeOE = oe(richText({ style: 'PageDateTime', runs: [{ text: timeTxt }] }, boiler(P.IsTitleTime)), null, [[P.CannotBeSelected, true], [P.Deletable, true]]);
+    const dateOutline = sp.add(J.OutlineNode, [
+      [P.LastModifiedTime, T32], [P.ElementChildNodes, [dateOE, timeOE]], [P.RgOutlineIndentDistance, indents], [P.OutlineElementChildLevel, 1], [P.LayoutMaxHeight, f32(0.6)],
+      [P.IsTitleDate, true], [P.LayoutTightLayout, true], [P.CannotBeSelected, true], [P.IsReadOnly, true], [P.Deletable, true],
+      [P.LayoutAlignmentInParent, u32b(0)], [P.LayoutAlignmentSelf, u32b(12)], [P.LayoutMaxWidth, f32(8.3125)],
+    ]);
+    const title = sp.add(J.TitleNode, [
+      [P.LastModifiedTime, T32], [P.OffsetFromParentHoriz, f32(0)], [P.OffsetFromParentVert, f32(0)], [P.LayoutAlignmentInParent, u32b(0x0009000C)],
+      [P.LayoutAlignmentSelf, u32b(0)], [P.LayoutCollisionPriority, u32b(0)], [P.ElementChildNodes, [titleOutline, dateOutline]],
+    ]);
+    // Inhalte
+    const elems = [];
+    for (const it of page.items) {
+      if (it.kind === 'outline') {
+        // flache Absätze mit Tiefe -> verschachtelte Elemente
+        const build = (list, i, depth) => {
+          const out = [];
+          while (i < list.length && list[i].depth >= depth) {
+            const p = list[i];
+            if (p.depth > depth) { const r = build(list, i, p.depth); if (out.length) { const last = out[out.length - 1]; last.kids.push(...r.out); } else out.push(...r.out); i = r.i; continue; }
+            out.push({ p, kids: [] });
+            i++;
+          }
+          return { out, i };
+        };
+        const tree = build(it.paras.map(p => ({ ...p, depth: Math.max(0, p.depth | 0) })), 0, 0).out;
+        const mk = (nodes) => nodes.map(n => oe(n.p.image ? imageNode(n.p.image, false) : richText(n.p), mk(n.kids)));
+        const kids = mk(tree);
+        if (!kids.length) continue;
+        elems.push(sp.add(J.OutlineNode, [
+          [P.LastModifiedTime, T32], [P.ElementChildNodes, kids], [P.RgOutlineIndentDistance, indents], [P.OutlineElementChildLevel, 1],
+          [P.OffsetFromParentHoriz, f32(it.x / HI)], [P.OffsetFromParentVert, f32(it.y / HI)],
+          [P.LayoutMaxWidth, f32(Math.max(40, it.w) / HI)], [P.IsLayoutSizeSetByUser, true],
+          [P.LayoutAlignmentInParent, u32b(0)], [P.LayoutAlignmentSelf, u32b(0)],
+        ]));
+      } else if (it.kind === 'image') {
+        elems.push(imageNode(it, true));
+      } else if (it.kind === 'ink' && it.strokes.length) {
+        const strokes = [];
+        for (const s of it.strokes) {
+          if (!s.pts || s.pts.length < 1) continue;
+          const pts = s.pts.length === 1 ? [s.pts[0], { ...s.pts[0], x: s.pts[0].x + 0.1 }] : s.pts;
+          const withP = !s.marker && pts.some(q => q.p != null);
+          const xs = pts.map(q => Math.round(q.x * HIMETRIC)), ys = pts.map(q => Math.round(q.y * HIMETRIC));
+          const chans = [xs, ys];
+          if (withP) chans.push(pts.map(q => Math.round(Math.max(0.05, Math.min(1, (q.p ?? 0.5) * 1.5)) * 32767)));
+          const w = Math.max(1, (s.w || 2) * HIMETRIC);
+          const pprops = [[P.InkMetric, metric(withP)], [P.InkColor, colorRef(s.color || '#000000')], [P.InkWidth, f32(w)], [P.InkHeight, f32(w)]];
+          if (s.marker) pprops.push([P.InkHighlighter, true], [P.InkTip, 1], [P.InkRasterOp, 9]);
+          const pp = sp.add(J.InkStrokeProperties, pprops);
+          strokes.push(sp.add(J.InkStroke, [[P.InkPath, isfPath(chans)], [P.InkLang, LANG], [P.InkX0C00341C, 0], [P.InkX0C003610, 0], [P.InkGuid, guidBytes(newGuid())], [P.InkTime, fileTime(s.t0 || now)], [P.InkProps, pp]]));
+        }
+        if (!strokes.length) continue;
+        const data = sp.add(J.InkData, [[P.InkStrokes, strokes]]);
+        elems.push(sp.add(J.InkContainer, [[P.LastModifiedTime, T32], [P.OffsetFromParentHoriz, f32(0)], [P.OffsetFromParentVert, f32(0)], [P.InkData, data], [P.InkKind, u32b(1)]]));
+      }
+    }
+    const pageNode = sp.add(J.PageNode, [
+      [P.LastModifiedTime, T32],
+      ...(elems.length ? [[P.ElementChildNodes, elems]] : []),
+      [P.StructureElementChildNodes, [title]], [P.LayoutResolveChildCollisions, true], [P.PortraitPage, true],
+      [P.PageMarginTop, f32(1)], [P.PageMarginBottom, f32(1)], [P.PageMarginLeft, f32(2)], [P.PageMarginRight, f32(2)],
+      [P.PageWidth, f32(20.944)], [P.PageHeight, f32(21.75)], [P.X14001C9E, f32(0.5)], [P.X14001C9F, f32(0.5)], [P.X14001CA0, f32(0.25)], [P.X14001CA1, f32(0.25)],
+      [P.AuthorName, utf16z(AUTHOR)], [P.AuthorInitials, utf16z(INITIALS)], [P.AuthorOriginal, author], [P.AuthorMostRecent, author],
+      [P.EditRootRTL, false], [P.PageMarginOriginX, f32(1)], [P.PageMarginOriginY, f32(0.4)], [P.X14001D5C, u32b(26)], [P.X14003653, u32b(16)],
+      [P.X1C001D5D, new Uint8Array([0])], [P.NotebookManagementEntityGuid, guidBytes(newGuid())],
+    ]);
+    manifest.props.push([P.ContentChildNodes, [pageNode]]);
+    sp.root(1, manifest); sp.root(2, meta); sp.root(4, revMeta);
+    void files;
+    return sp;
+  }
+
+  /* Abschnitt: pages -> .one */
+  function buildSection(pages) {
+    const files = [];
+    const pageSpaces = [];
+    for (const pg of pages) {
+      for (const it of pg.items) {
+        const imgs = it.kind === 'image' ? [it] : it.kind === 'outline' ? it.paras.filter(p => p.image).map(p => p.image) : [];
+        for (const im of imgs) if (im.data && !im.fileGuid) { im.fileGuid = newGuid(); files.push({ guid: im.fileGuid, data: im.data }); }
+      }
+      pageSpaces.push(buildPage(pg, files));
+    }
+    const sec = new Space();
+    const now = Date.now();
+    const series = sec.add(J.PageSeriesNode, [[P.ChildGraphSpaceElementNodes, pageSpaces.map(s => s.gosid)], [P.NotebookManagementEntityGuid, guidBytes(newGuid())], [P.TopologyCreationTimeStamp, fileTime(now)]]);
+    const node = sec.add(J.SectionNode, [[P.NotebookManagementEntityGuid, guidBytes(newGuid())], [P.TopologyCreationTimeStamp, fileTime(now)], [P.ElementChildNodes, [series]]]);
+    const meta = sec.add(J.SectionMetaData, [[P.SchemaRevisionInOrderToRead, u32b(40)], [P.X1400348B, u32b(40)]]);
+    sec.root(1, node); sec.root(2, meta);
+    const fb = new FileBuilder(false);
+    return fb.finish(sec, [sec, ...pageSpaces], files, '{7B5C52E4-D88C-4DA7-AEB1-5378D02996D3}');
+  }
+
+  /* Inhaltsverzeichnis: entries = [{ file, color }] in Reihenfolge */
+  function buildToc(entries, color) {
+    const sp = new Space();
+    const kids = entries.map((e, i) => {
+      const props = [[P.TocGuid, guidBytes(newGuid())], [P.TocOrder, u32b(i + 1)], [P.TocFileName, utf16z(e.file)]];
+      if (e.color) props.push([P.TocColor, colorRef(e.color)]);
+      return sp.add(J.TocEntry, props);
+    });
+    const rootProps = [[P.TocChildren, kids]];
+    if (color) rootProps.push([P.TocColor, colorRef(color)]);
+    const root = sp.add(J.TocEntry, rootProps);
+    sp.root(1, root);
+    const fb = new FileBuilder(true);
+    return fb.finish(sp, [sp], [], '{43FF2FA1-EFD9-4C76-9EE2-10EA5722765F}');
+  }
+
+  /* CAB ohne Kompression: files = [{ name ('Ordner\\Datei'), data }] */
+  function buildCab(files) {
+    const enc = new TextEncoder();
+    const names = files.map(f => enc.encode(f.name.replace(/\//g, '\\')));
+    const total = files.reduce((a, f) => a + f.data.length, 0);
+    const all = new Uint8Array(total);
+    let off = 0;
+    const offs = files.map(f => { const o = off; all.set(f.data, off); off += f.data.length; return o; });
+    const BLK = 32768;
+    const nData = Math.max(1, Math.ceil(total / BLK));
+    const hdrLen = 36, folderLen = 8;
+    const filesLen = files.reduce((a, f, i) => a + 16 + names[i].length + 1, 0);
+    const dataStart = hdrLen + folderLen + filesLen;
+    const cabLen = dataStart + nData * 8 + total;
+    const o = new Out(cabLen + 16);
+    o.bytes(new Uint8Array([0x4D, 0x53, 0x43, 0x46])).u32(0).u32(cabLen).u32(0).u32(hdrLen + folderLen).u32(0).u8(3).u8(1).u16(1).u16(files.length).u16(0).u16(0x1234).u16(0);
+    o.u32(dataStart).u16(nData).u16(0);
+    const d = new Date();
+    const dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    const dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2);
+    files.forEach((f, i) => {
+      const utf8 = /[^\x00-\x7F]/.test(f.name);
+      o.u32(f.data.length).u32(offs[i]).u16(0).u16(dosDate).u16(dosTime).u16(0x20 | (utf8 ? 0x80 : 0)).bytes(names[i]).u8(0);
+    });
+    for (let i = 0; i < nData; i++) {
+      const part = all.subarray(i * BLK, Math.min(total, (i + 1) * BLK));
+      o.u32(0).u16(part.length).u16(part.length).bytes(part);
+    }
+    return o.done();
+  }
+
+  /* ================================================================ Teil 2: KnowledgeTree -> OneNote (im Browser) */
+  const ON_TITLE = 56; // Platz für Titel und Datum oben auf der OneNote-Seite (wie beim Import)
+  const hex2 = (n) => Math.round(n).toString(16).padStart(2, '0');
+  const cssHex = (c) => {
+    const m = /rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:[ ,/]+([\d.]+%?))?/.exec(c || '');
+    if (!m) return /^#[0-9a-f]{6}$/i.test(c || '') ? c.toLowerCase() : null;
+    if (m[4] !== undefined && parseFloat(m[4]) === 0) return null;
+    return '#' + hex2(+m[1]) + hex2(+m[2]) + hex2(+m[3]);
+  };
+  const firstFont = (ff) => {
+    const f = (ff || '').split(',')[0].trim().replace(/^["']|["']$/g, '');
+    if (!f || /^(sans-serif|serif|system-ui|-apple-system|ui-sans-serif|monospace)$/i.test(f)) return 'Calibri';
+    return /^carlito$/i.test(f) ? 'Calibri' : f;
+  };
+  const ptOf = (px) => Math.round(parseFloat(px) * 0.75 * 2) / 2;
+
+  /* Bilddaten holen; Formate, die OneNote nicht kennt, als PNG */
+  async function imageBytes(name) {
+    let blob;
+    try { const r = await fetch(await Backend.imgURL(name)); if (!r.ok) return null; blob = await r.blob(); } catch (e) { return null; }
+    let type = blob.type || '';
+    if (!/^image\/(png|jpeg|gif|bmp)$/.test(type)) {
+      try {
+        const bmp = await createImageBitmap(blob);
+        const c = document.createElement('canvas');
+        c.width = bmp.width; c.height = bmp.height;
+        c.getContext('2d').drawImage(bmp, 0, 0);
+        blob = await new Promise(res => c.toBlob(res, 'image/png'));
+        type = 'image/png';
+      } catch (e) { return null; }
+    }
+    const ext = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif', 'image/bmp': '.bmp' }[type] || '.png';
+    return { data: new Uint8Array(await blob.arrayBuffer()), ext };
+  }
+
+  /* Text eines Feldes (gerendert) -> Absätze mit Läufen */
+  async function htmlParas(root) {
+    const paras = [];
+    const rootCs = getComputedStyle(root);
+    const inkColor = cssHex(rootCs.color);
+    let cur = null;
+    const blockFmt = (el) => {
+      const cs = getComputedStyle(el);
+      const color = cssHex(cs.color);
+      const f = { font: firstFont(cs.fontFamily), size: ptOf(cs.fontSize), color: color && color !== inkColor ? color : null, b: parseInt(cs.fontWeight, 10) >= 600, i: cs.fontStyle === 'italic' };
+      // Zeilenhöhe wie in KnowledgeTree (OneNote: genauer Zeilenabstand in pt), Abstände vor/nach dem Absatz
+      const lh = parseFloat(cs.lineHeight);
+      if (lh > 0 && cs.lineHeight !== 'normal') f.lineExact = Math.round(lh * 0.75 * 100) / 100;
+      const mt = parseFloat(cs.marginTop) || 0, mb = parseFloat(cs.marginBottom) || 0;
+      if (mt > 0.5 && el !== root) f.before = Math.round(mt * 0.75 * 100) / 100;
+      if (mb > 0.5 && el !== root) f.after = Math.round(mb * 0.75 * 100) / 100;
+      return f;
+    };
+    const styleOf = (el) => { const t = el.tagName; return /^H[1-6]$/.test(t) ? t.toLowerCase() : t === 'PRE' ? 'code' : t === 'BLOCKQUOTE' ? 'quote' : 'p'; };
+    const open = (el, depth, prefix) => {
+      flush();
+      const cs = getComputedStyle(el);
+      const ml = parseFloat(cs.marginLeft) || 0;
+      cur = { depth: depth + (el.tagName === 'DIV' && ml > 18 ? Math.round(ml / 36) || 1 : 0), style: styleOf(el), styleFmt: blockFmt(el), align: cs.textAlign === 'center' ? 'center' : cs.textAlign === 'right' || cs.textAlign === 'end' ? 'right' : null, runs: [], block: el };
+      if (prefix) cur.runs.push({ text: prefix, prefix: true });
+    };
+    const flush = () => { if (cur) { paras.push(cur); cur = null; } };
+    const ensure = (el, depth) => { if (!cur) open(el.closest('div, p, h1, h2, h3, h4, h5, h6, li, pre, blockquote, td') || root, depth); };
+    const runOf = (textEl, text) => {
+      const cs = getComputedStyle(textEl);
+      const r = { text };
+      const base = cur.styleFmt;
+      const font = firstFont(cs.fontFamily), size = ptOf(cs.fontSize), color = cssHex(cs.color);
+      const b = parseInt(cs.fontWeight, 10) >= 600, i = cs.fontStyle === 'italic';
+      if (font !== base.font) r.font = font;
+      if (size !== base.size) r.size = size;
+      if (color && color !== inkColor && color !== base.color) r.color = color;
+      if (b !== base.b) r.b = b;
+      if (i !== base.i) r.i = i;
+      for (let e = textEl; e && e !== root && e !== cur.block; e = e.parentElement) {
+        const ecs = getComputedStyle(e);
+        const dl = ecs.textDecorationLine || '';
+        if (/underline/.test(dl) && e.tagName !== 'A') r.u = true;
+        if (/line-through/.test(dl)) r.s = true;
+        if (e.tagName === 'SUP' || ecs.verticalAlign === 'super') r.sup = true;
+        if (e.tagName === 'SUB' || ecs.verticalAlign === 'sub') r.sub = true;
+        if (!r.hl) { const bg = cssHex(ecs.backgroundColor); if (bg) r.hl = bg; }
+      }
+      const a = textEl.closest('a[href]');
+      if (a && root.contains(a) && !a.classList.contains('kt-file') && /^(https?:|mailto:)/i.test(a.getAttribute('href'))) r.href = a.getAttribute('href');
+      return r;
+    };
+    const walk = async (node, depth) => {
+      for (const n of [...node.childNodes]) {
+        if (n.nodeType === 3) {
+          const t = n.nodeValue.replace(/​/g, '').replace(/[\r\n]+/g, ' ');
+          if (!t) continue;
+          ensure(n.parentElement, depth);
+          cur.runs.push(runOf(n.parentElement, t));
+          continue;
+        }
+        if (n.nodeType !== 1) continue;
+        const tag = n.tagName;
+        if (n.classList.contains('kt-math')) { ensure(node, depth); cur.runs.push({ text: n.dataset.tex || n.textContent, font: 'Cambria Math' }); continue; }
+        if (n.classList.contains('kt-file')) { ensure(node, depth); cur.runs.push({ text: '📎 ' + (n.dataset.name || n.textContent.replace(/^📎\s*/, '')) }); continue; }
+        if (tag === 'BR') {
+          if (cur && n.nextSibling && !(n.nextSibling.nodeType === 1 && /^(DIV|P|UL|OL|TABLE|H\d)$/.test(n.nextSibling.tagName))) cur.runs.push({ text: '\u000b' });
+          continue;
+        }
+        if (tag === 'IMG') {
+          const name = n.dataset.ktSrc;
+          const im = name ? await imageBytes(name) : null;
+          if (im) {
+            const d0 = cur ? cur.depth : depth;
+            if (cur && !cur.runs.length) cur = null; else flush();
+            const r = n.getBoundingClientRect(), z = Canvas.view.z || 1;
+            paras.push({ depth: d0, image: { ...im, w: Math.max(4, r.width / z), h: Math.max(4, r.height / z), alt: n.alt || '' } });
+          }
+          continue;
+        }
+        if (tag === 'HR') { flush(); open(n, depth); cur.runs.push({ text: '────────────────', color: '#a19f9d' }); flush(); continue; }
+        if (tag === 'UL' || tag === 'OL') { flush(); await walk(n, depth); flush(); continue; }
+        if (tag === 'LI') {
+          const list = n.parentElement;
+          let lv = -1;
+          for (let e = n.parentElement; e && e !== root; e = e.parentElement) if (e.tagName === 'UL' || e.tagName === 'OL') lv++;
+          lv = Math.max(0, lv);
+          let prefix = '• ';
+          if (list.classList.contains('checklist')) prefix = n.classList.contains('done') ? '☑ ' : '☐ ';
+          else if (list.tagName === 'OL') prefix = ([...list.children].filter(c => c.tagName === 'LI').indexOf(n) + 1) + '. ';
+          else if (lv % 2 === 1) prefix = '◦ ';
+          open(n, depth + lv, prefix);
+          await walk(n, depth + lv);
+          flush();
+          continue;
+        }
+        if (tag === 'TABLE') {
+          flush();
+          for (const tr of n.querySelectorAll('tr')) {
+            open(tr.cells[0] || tr, depth);
+            const block = cur;
+            // Zelleninhalt als Text (Absätze in der Zelle durch Leerzeichen getrennt)
+            const parts = [...tr.cells].map(td => td.innerText.replace(/\s*\n\s*/g, ' ').trim());
+            block.runs = parts.flatMap((t, k) => k ? [{ text: '\t' }, { text: t }] : [{ text: t }]).filter(r => r.text);
+            flush();
+          }
+          continue;
+        }
+        if (/^(DIV|P|H[1-6]|PRE|BLOCKQUOTE)$/.test(tag)) {
+          // Block direkt nach dem Aufzählungszeichen gehört zum selben Absatz
+          if (cur && cur.runs.length && cur.runs.every(r => r.prefix)) { await walk(n, cur.depth); continue; }
+          open(n, depth); await walk(n, depth); flush(); continue;
+        }
+        await walk(n, depth);
+      }
+    };
+    await walk(root, 0);
+    flush();
+    // leere Absätze am Ende weglassen, Leerzeichen-Läufe zusammenfassen
+    for (const p of paras) if (p.runs) { p.runs = p.runs.filter(r => r.text !== '').map(r => { delete r.prefix; return r; }); delete p.block; }
+    while (paras.length && !paras[paras.length - 1].image && !paras[paras.length - 1].runs.some(r => r.text.trim())) paras.pop();
+    return paras;
+  }
+
+  /* SVG-Pfad (Verbindung) abtasten */
+  const samplePath = (path, step = 6) => {
+    try {
+      const L = path.getTotalLength();
+      const n = Math.max(2, Math.min(400, Math.ceil(L / step) + 1));
+      const out = [];
+      for (let i = 0; i < n; i++) { const p = path.getPointAtLength(L * i / (n - 1)); out.push({ x: p.x, y: p.y }); }
+      return out;
+    } catch (e) { return []; }
+  };
+  const roundRect = (x, y, w, h, r) => {
+    const pts = [];
+    const arc = (cx, cy, a0) => { for (let k = 0; k <= 4; k++) { const a = a0 + k * Math.PI / 8; pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }); } };
+    arc(x + w - r, y + r, -Math.PI / 2); arc(x + w - r, y + h - r, 0); arc(x + r, y + h - r, Math.PI / 2); arc(x + r, y + r, Math.PI);
+    pts.push({ ...pts[0] });
+    return pts;
+  };
+  const arrowHead = (a, b, w) => {
+    const L = Math.hypot(b.x - a.x, b.y - a.y) || 1, ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+    const s = Math.max(8, w * 3.5);
+    return [{ x: b.x - ux * s - uy * s * 0.5, y: b.y - uy * s + ux * s * 0.5 }, b, { x: b.x - ux * s + uy * s * 0.5, y: b.y - uy * s - ux * s * 0.5 }];
+  };
+
+  /* gerenderte Seite (Canvas zeigt sie gerade) -> Zwischenformat */
+  async function pageModel(page) {
+    const z = Canvas.view.z || 1;
+    const wr = $('#world').getBoundingClientRect();
+    const W = (r) => ({ x: (r.left - wr.left) / z, y: (r.top - wr.top) / z, w: r.width / z, h: r.height / z });
+    const items = [];
+    const frames = [];
+    const dense = (pts, step = 4) => {
+      const out = [];
+      pts.forEach((q, i) => {
+        if (i) { const a = pts[i - 1], L = Math.hypot(q.x - a.x, q.y - a.y), n = Math.floor(L / step); for (let k = 1; k < n; k++) out.push({ x: a.x + (q.x - a.x) * k / n, y: a.y + (q.y - a.y) * k / n, p: q.p }); }
+        out.push(q);
+      });
+      return out;
+    };
+    const ink = (pts, color, w, opts = {}) => { if (pts.length) frames.push({ pts: (opts.raw ? pts : dense(pts)).map(p => ({ x: p.x, y: p.y, p: p.p })), color: color || '#000000', w, marker: !!opts.marker, t0: opts.t0 }); };
+    // Pakete (Rahmen + Titel)
+    for (const k of page.pkgs) {
+      const r = Canvas.rects.get(k.id);
+      if (!r) continue;
+      ink(roundRect(r.x, r.y, r.w, r.h, 8), k.color || '#6b4fbb', 2);
+      items.push({ kind: 'outline', x: r.x + 10, y: r.y + 3, w: Math.max(60, r.w - 20), paras: [{ depth: 0, style: 'p', styleFmt: { font: 'Calibri', size: 10, b: true, color: k.color || null }, runs: [{ text: k.title || 'Paket' }] }] });
+    }
+    // Verbindungen
+    for (const path of document.querySelectorAll('#links-g path.link')) {
+      const cs = getComputedStyle(path);
+      const col = cssHex(cs.stroke) || '#8e8aa0';
+      ink(samplePath(path), col, parseFloat(path.getAttribute('stroke-width')) || 2);
+    }
+    for (const path of document.querySelectorAll('#links-g path.link-arrow')) {
+      const pts = samplePath(path, 3);
+      ink(pts, cssHex(getComputedStyle(path).fill) || '#8e8aa0', 2);
+    }
+    for (const t of document.querySelectorAll('#links-g text.link-label')) {
+      const r = W(t.getBoundingClientRect());
+      items.push({ kind: 'outline', x: r.x, y: r.y, w: Math.max(30, r.w + 8), paras: [{ depth: 0, style: 'p', styleFmt: { size: 10 }, runs: [{ text: t.textContent }] }] });
+    }
+    // Textfelder
+    for (const b of [...page.boxes].sort((a, c) => a.z - c.z)) {
+      const e = Canvas.els.get(b.id);
+      if (!e) continue;
+      const st = b.style || {};
+      const r = Canvas.rects.get(b.id) || { x: b.x, y: b.y, w: b.w, h: e.offsetHeight };
+      if (st.bg !== 'transparent') ink(roundRect(r.x, r.y, r.w, r.h, 7), st.border || (st.bg && st.bg !== 'transparent' ? st.bg : '#c8c6c4'), 1);
+      const paras = await htmlParas(e.querySelector('.box-text'));
+      if (paras.length) items.push({ kind: 'outline', x: b.x + 11, y: b.y + 13, w: b.w - 22, paras });
+      for (const f of e.querySelectorAll('.fimg')) {
+        const im = b.images.find(q => q.id === f.dataset.img);
+        const data = im && await imageBytes(im.src);
+        if (!data) continue;
+        const fr = W(f.getBoundingClientRect());
+        items.push({ kind: 'image', x: fr.x, y: fr.y, w: fr.w, h: fr.h, ...data });
+      }
+    }
+    // Zeichnungen
+    for (const d of page.drawings) {
+      const color = /^#[0-9a-f]{6}$/i.test(d.color || '') ? d.color : d.kind === 'rainbow' ? '#bf5af2' : d.kind === 'glitter' ? '#c9a227' : '#1f1f1f';
+      if (d.type === 'ink') { ink(DG.inkPts(d), color, d.w, { marker: d.kind === 'marker', t0: d.t0, raw: true }); continue; }
+      const { lines } = DG.lines(d);
+      for (const l of lines) ink(l, color, d.w, { t0: d.t0 });
+      const heads = [];
+      if (d.shape === 'arrow' || d.shape === 'darrow') heads.push(arrowHead({ x: d.x1, y: d.y1 }, { x: d.x2, y: d.y2 }, d.w));
+      if (d.shape === 'darrow') heads.push(arrowHead({ x: d.x2, y: d.y2 }, { x: d.x1, y: d.y1 }, d.w));
+      if (d.shape === 'axes') { const l = lines; heads.push(arrowHead(l[0][0], l[0][1], d.w), arrowHead(l[1][0], l[1][1], d.w)); }
+      for (const h of heads) ink(h, color, d.w, { t0: d.t0 });
+    }
+    if (frames.length) items.unshift({ kind: 'ink', strokes: frames });
+    // Lage: Titelbereich oben frei lassen, nichts links/oben aus der Seite
+    let minX = Infinity, minY = Infinity;
+    for (const it of items) {
+      if (it.kind === 'ink') for (const s of it.strokes) for (const p of s.pts) { minX = Math.min(minX, p.x - s.w); minY = Math.min(minY, p.y - s.w); }
+      else { minX = Math.min(minX, it.x); minY = Math.min(minY, it.y); }
+    }
+    const dx = minX < 0 ? -minX : 0, dy = ON_TITLE + (minY < 0 ? -minY : 0);
+    for (const it of items) {
+      if (it.kind === 'ink') for (const s of it.strokes) for (const p of s.pts) { p.x += dx; p.y += dy; }
+      else { it.x += dx; it.y += dy; }
+    }
+    return { title: page.title || 'Unbenannte Seite', created: page.created, modified: page.modified, level: page.level || 0, items };
+  }
+
+  /* Auswahl (beschnittener Baum) -> Dateien */
+  async function exportTree(tree, name, progress) {
+    const safe = (s) => String(s || 'Unbenannt').replace(/[<>:"/\\|?*\u0000-\u001f]+/g, '_').replace(/[. ]+$/, '').trim().slice(0, 80) || 'Unbenannt';
+    const allPages = [];
+    const walk = (list) => { for (const g of list) { allPages.push(...g.pages); walk(g.groups); } };
+    walk(tree);
+    const models = new Map();
+    await Export.renderEach(allPages.map(pid => ({ pid })), { set: (t, f) => progress('OneNote: ' + t, f * 0.9) }, async (page, pid) => {
+      models.set(pid, await pageModel(page));
+    });
+    progress('OneNote-Dateien werden geschrieben …', 0.95);
+    const section = (g) => buildSection(g.pages.map(pid => models.get(pid)).filter(Boolean));
+    const sections = [];
+    const findSecs = (list) => { for (const g of list) { if (g.pages.length) sections.push(g); findSecs(g.groups); } };
+    findSecs(tree);
+    // ein einzelner Abschnitt -> .one
+    if (sections.length === 1) return [{ name: safe(sections[0].name) + '.one', data: section(sections[0]) }];
+    // sonst je Notizbuch ein Paket (.onepkg); einzelne Abschnitte oben (z. B. Schnellnotizen) als .one
+    const out = [];
+    for (const top of tree) {
+      if (top.kind === 'section' || top.kind === 'quick') { out.push({ name: safe(top.name) + '.one', data: section(top) }); continue; }
+      const files = [];
+      const folder = (g, path) => {
+        const entries = [];
+        const used = new Set();
+        const uniq = (n) => { let x = n, i = 2; while (used.has(x.toLowerCase())) x = `${n} (${i++})`; used.add(x.toLowerCase()); return x; };
+        for (const c of g.groups) {
+          if (c.kind === 'group' || c.kind === 'notebook') { const n = uniq(safe(c.name)); entries.push({ file: n }); folder(c, path + n + '\\'); }
+          else { const n = uniq(safe(c.name)) ; entries.push({ file: n + '.one', color: c.color || null }); files.push({ name: path + n + '.one', data: section(c) }); }
+        }
+        if (g.pages.length) { const n = uniq(safe(g.name)); entries.push({ file: n + '.one', color: g.color || null }); files.push({ name: path + n + '.one', data: section(g) }); }
+        files.push({ name: path + 'Open Notebook.onetoc2', data: buildToc(entries, path ? null : (g.color || null)) });
+      };
+      folder(top, '');
+      out.push({ name: safe(top.name) + '.onepkg', data: buildCab(files) });
+    }
+    return out;
+  }
+
+  return { buildSection, buildToc, buildCab, buildPage, newGuid, guidBytes, crc32, md5, isfPath, Space, FileBuilder, P, J, exportTree, pageModel, htmlParas };
+})();
+
+if (typeof module !== 'undefined') module.exports = OneWrite;
 
 </script>
 <script>
@@ -8369,15 +10462,16 @@ const Ribbon = {
         B.col(B.small('newSubpage', 'Unterseite', 'subpage', 'Neue Unterseite unter der aktuellen Seite (Strg+Alt+N)'), B.small('newSection', 'Abschnitt', 'tabPlus', 'Neuer Abschnitt (Register oben)'), B.small('quickNote', 'Schnellnotiz', 'bolt', 'Neue Schnellnotiz (Alt+Umsch+N)')),
         B.col(B.small('newSectionGroup', 'Abschnittsgruppe', 'folderPlus', 'Neue Abschnittsgruppe (Ordner für Abschnitte)'), B.small('newNotebook', 'Notizbuch', 'bookPlus', 'Neues Notizbuch')));
       G('Seite', B.col(B.small('renamePage', 'Umbenennen', 'pencil', 'Seite umbenennen (F2)'), B.small('dupPage', 'Duplizieren', 'duplicate'), B.small('deletePage', 'Löschen', 'trash')),
-        B.col(B.small('movePage', 'Verschieben nach …', 'folder', 'Seite (mit Unterseiten) in einen anderen Abschnitt verschieben'), B.small('versions', 'Seitenversionen', 'versions', 'Ältere Stände dieser Seite ansehen und wiederherstellen'), B.small('exportHtml', 'Als HTML', 'download', 'Aktuelle Seite als eigenständige HTML-Datei herunterladen')));
-      G('OneNote', B.big('oneImport', 'OneNote importieren', 'oneNote', 'OneNote-Abschnitte (.one) oder ganze Notizbücher (.onepkg) übernehmen – auch per Ziehen auf das Fenster'));
+        B.col(B.small('movePage', 'Verschieben nach …', 'folder', 'Seite (mit Unterseiten) in einen anderen Abschnitt verschieben'), B.small('versions', 'Seitenversionen', 'versions', 'Ältere Stände dieser Seite ansehen und wiederherstellen')));
+      G('Exportieren & Importieren', B.big('exportDlg', 'Exportieren', 'export', 'Seiten, Abschnitte oder Notizbücher auswählen und als PDF, Webseite (HTML), KnowledgeTree-Datei oder OneNote-Datei speichern'),
+        B.big('oneImport', 'OneNote importieren', 'oneNote', 'OneNote-Abschnitte (.one) oder ganze Notizbücher (.onepkg) übernehmen – auch per Ziehen auf das Fenster'),
+        Backend.kind === 'browser' ? null : B.big('restore', 'KT-Datei laden', 'folder', 'Eine exportierte KnowledgeTree-Datei (.json) als zusätzliches Notizbuch einlesen'));
       G('Notizbuch', B.col(
-        B.small('exportNotebook', 'Exportieren', 'download', Backend.kind === 'browser' ? 'Aktuelles Notizbuch als Datei sichern (mit „Backup laden“ wieder einlesen)' : 'Saves-Ordner mit den Notizbüchern öffnen'),
         B.small('closeNotebook', 'Schliessen', 'bookClosed', 'Notizbuch ausblenden (bleibt gespeichert)'),
         B.dropBtn('small', icon('book', 16), 'Öffnen', 'Geschlossene Notizbücher wieder anzeigen', (a) => Ops.openNotebookMenu(a))));
       if (Backend.kind === 'browser') {
         G('Speichern & Sicherung', B.big('save', 'Jetzt speichern', 'save', 'Alles sofort speichern (Strg+S) – passiert sonst automatisch'),
-          B.big('backup', 'Backup herunter­laden', 'archive', 'Alle Notizbücher, Seiten und Bilder als Datei sichern'), B.big('restore', 'Backup laden', 'folder', 'Eine Sicherung oder ein exportiertes Notizbuch einlesen (ersetzen oder hinzufügen)'), B.big('trash', 'Papier­korb', 'trash', 'Gelöschte Seiten wiederherstellen'));
+          B.big('backup', 'Backup erstellen', 'archive', 'Alle Notizbücher, Seiten und Bilder als Datei herunterladen (mit „Backup laden“ wieder einlesen)'), B.big('restore', 'Backup laden', 'folder', 'Eine Sicherung oder ein exportiertes Notizbuch einlesen (ersetzen oder hinzufügen)'), B.big('trash', 'Papier­korb', 'trash', 'Gelöschte Seiten wiederherstellen'));
         G('Hilfe', B.big('shortcuts', 'Tasten­kürzel', 'keyboard'), B.big('about', 'Info & Speicher', 'info'));
       } else {
         G('Speichern', B.big('save', 'Jetzt speichern', 'save', 'Alles sofort speichern (Strg+S) – passiert sonst automatisch'), B.big('backup', 'Backup erstellen', 'archive', 'Kopie aller Saves als ZIP in Cache/Backups'));
@@ -8446,6 +10540,7 @@ const Ribbon = {
       G('Elemente', B.big('newBox', 'Textfeld', 'textbox'), B.big('insertImage', 'Bild', 'image', 'Bild in das ausgewählte Textfeld einfügen (oder neues Feld). Bilder kannst du auch hineinziehen oder mit Strg+V einfügen.'), B.big('insertTable', 'Tabelle', 'table', 'Tabelle 3×3 einfügen'));
       G('Text', B.col(B.small('insertLink', 'Link', 'link', 'Link einfügen (Strg+K)'), B.small('unlink', 'Link entfernen', 'unlink'), B.small('checklist', 'Checkliste', 'checklist')),
         B.col(B.small('insertDate', 'Datum', 'calendar', 'Heutiges Datum einfügen', false), B.small('insertDate', 'Datum & Uhrzeit', 'calendar', 'Datum und Uhrzeit einfügen', true), B.small('insertHr', 'Trennlinie', 'hr')));
+      G('Formeln', B.dropBtn('big', icon('formula', 28), 'Formel', 'Formel einfügen (Alt+=): Brüche, Wurzeln, Exponenten, Summen, Integrale, Matrizen und Symbole wie in Office', (a) => Formula.gallery(a)));
       G('Symbole', B.dropBtn('big', icon('omega', 28), 'Symbol', 'Sonderzeichen und Emojis einfügen', (anchor) => {
         const g = el('div', { class: 'sym-grid' });
         for (const s of SYMBOLS) g.append(el('button', { text: s, title: s, onclick: () => { UI.closePopup(); Cmd.run('insertSymbol', s); } }));
@@ -8594,6 +10689,7 @@ const App = {
     Store.ui = { ...UI_DEFAULTS, ...(data.zustand && typeof data.zustand === 'object' ? data.zustand : {}) };
     for (const k of ['collapsed', 'lastPage', 'lastSection', 'views', 'collapsedPages']) if (typeof Store.ui[k] !== 'object' || !Store.ui[k] || Array.isArray(Store.ui[k])) Store.ui[k] = {};
     if (!Array.isArray(Store.ui.recent)) Store.ui.recent = [];
+    if ((Store.ui.layoutV || 0) < 2) { Store.ui.pageListSide = 'links'; Store.ui.showTabs = false; Store.ui.layoutV = 2; }
     Store.ui.linkDefault = { ...UI_DEFAULTS.linkDefault, ...(Store.ui.linkDefault || {}) };
     Store.ui.ruler = { ...UI_DEFAULTS.ruler, ...(Store.ui.ruler || {}) };
     Store.ui.protractor = { ...UI_DEFAULTS.protractor, ...(Store.ui.protractor || {}) };
@@ -8927,6 +11023,7 @@ const App = {
         return;
       }
       if (e.altKey && !ctrl && !e.shiftKey && (k === 'n' || e.code === 'KeyN')) { e.preventDefault(); Cmd.run('newPage'); return; }
+      if (e.altKey && !ctrl && e.key === '=' && !inInput) { e.preventDefault(); Cmd.run('insertFormula'); return; }
       if (e.key === 'F5' && Backend.kind === 'server') { e.preventDefault(); return; }
       if (inText || inInput) return;
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); Canvas.deleteSelection(); return; }
@@ -8979,6 +11076,7 @@ const App = {
       ['Strg + B / I / U', 'fett / kursiv / unterstrichen'],
       ['Strg + L / E / R / J', 'links / zentriert / rechts / Blocksatz'],
       ['Strg + Umschalt + > / <', 'Schrift grösser / kleiner'],
+      ['Alt + =', 'Formel einfügen (Doppelklick auf eine Formel = bearbeiten)'],
       ['Strg + K', 'Link einfügen (Strg + Klick öffnet ihn)'],
       ['Tab / Umschalt + Tab', 'Einzug in Listen'],
       ['Esc', 'Textbearbeitung beenden'],
@@ -9029,8 +11127,31 @@ const App = {
     const mb = (b) => (b / 1024 / 1024).toFixed(1).replace('.', ',') + ' MB';
     p.textContent = `Belegt: ${mb(info.usage)} von ca. ${mb(info.quota)} · ` + (info.persisted ? 'dauerhaft gespeichert ✓' : 'Browser darf bei Platzmangel aufräumen – Backups machen!');
   },
+  /* KnowledgeTree-Datei ohne eigene Backend-Funktion einlesen (Desktop): Bilder/Anhänge hochladen, Namen anpassen */
+  async readBackupGeneric(file) {
+    const data = JSON.parse(await file.text());
+    if (!data || data.typ !== 'KnowledgeTree-Backup' || !data.seiten) throw new Error('Das ist keine KnowledgeTree-Datei.');
+    const ren = {};
+    for (const [name, url] of Object.entries(data.bilder || {})) {
+      const m = /^data:([^;,]+)?(;base64)?,(.*)$/.exec(url);
+      if (!m) continue;
+      const bin = m[2] ? atob(m[3]) : decodeURIComponent(m[3]);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      const ext = name.split('.').pop();
+      const blob = new Blob([arr], { type: m[1] || 'application/octet-stream' });
+      const isImg = /^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(blob.type);
+      const nn = isImg ? await Backend.saveImage(blob) : await Backend.saveFile(blob, ext);
+      if (nn && nn !== name) ren[name] = nn;
+    }
+    if (Object.keys(ren).length) {
+      let s = JSON.stringify(data.seiten);
+      for (const [a, b] of Object.entries(ren)) s = s.split(a).join(b);
+      data.seiten = JSON.parse(s);
+    }
+    return data;
+  },
   async restoreBackup() {
-    if (!Backend.readBackup) return;
     const file = await new Promise((res) => {
       const inp = el('input', { type: 'file', accept: '.json,application/json', style: { display: 'none' } });
       inp.addEventListener('change', () => { res(inp.files[0] || null); inp.remove(); });
@@ -9039,7 +11160,7 @@ const App = {
     });
     if (!file) return;
     let data;
-    try { data = await Backend.readBackup(file); }
+    try { data = Backend.readBackup ? await Backend.readBackup(file) : await this.readBackupGeneric(file); }
     catch (e) { UI.toast('Backup konnte nicht gelesen werden: ' + e.message, 4000); return; }
     const n = Object.keys(data.seiten).length;
     const mode = await UI.dialog((d, close) => {
@@ -9048,7 +11169,7 @@ const App = {
       d.append(el('div', { class: 'dlg-btns' },
         el('button', { class: 'btn', text: 'Abbrechen', onclick: () => close(null) }),
         el('button', { class: 'btn', text: 'Zusätzlich hinzufügen', onclick: () => close('add') }),
-        el('button', { class: 'btn danger', text: 'Alles ersetzen', onclick: () => close('replace') })));
+        Backend.kind === 'browser' ? el('button', { class: 'btn danger', text: 'Alles ersetzen', onclick: () => close('replace') }) : null));
     });
     if (!mode) return;
     Canvas.stopEditing();
@@ -9290,7 +11411,7 @@ const App = {
 
     // Seite 1: Willkommen
     const p = newPage('Willkommen');
-    const intro = b(0, 0, 440, '<h1>Willkommen in KnowledgeTree</h1><div>Klicke irgendwo auf die freie Fläche – dort entsteht sofort ein Textfeld und du kannst lostippen.</div><div><br></div><div><b>Links</b> deine Notizbücher, <b>oben</b> die Abschnitte als farbige Register, <b>rechts</b> die Seiten mit Unterseiten – wie in OneNote.</div>' + (Backend.kind === 'browser' ? '<div><br></div><div>Alles wird automatisch <b>in diesem Browser</b> gespeichert. Mach ab und zu unter <b>Datei → Backup herunterladen</b> eine Sicherung.</div>' : ''), { style: { bg: 'transparent' } });
+    const intro = b(0, 0, 440, '<h1>Willkommen in KnowledgeTree</h1><div>Klicke irgendwo auf die freie Fläche – dort entsteht sofort ein Textfeld und du kannst lostippen.</div><div><br></div><div><b>Links</b> deine Notizbücher mit Abschnitten (einzeln einklappbar), <b>daneben</b> die Seiten mit Unterseiten – wie in OneNote.</div>' + (Backend.kind === 'browser' ? '<div><br></div><div>Alles wird automatisch <b>in diesem Browser</b> gespeichert. Mach ab und zu unter <b>Datei → Backup erstellen</b> eine Sicherung.</div>' : ''), { style: { bg: 'transparent' } });
     const how = b(0, Backend.kind === 'browser' ? 270 : 210, 340, '<h3>Bedienung</h3><ul><li><b>Leiste oben</b> am Feld ziehen = verschieben</li><li><b>Rechte Kante</b> ziehen = Breite</li><li>Bilder <b>hineinziehen</b> oder mit <b>Strg+V</b> einfügen</li><li><b>Strg+Z</b> = rückgängig (100 Schritte)</li><li><b>Alt+←</b> = zur vorherigen Seite</li></ul>');
     const idea1 = b(520, 60, 230, '<b>Idee A</b><div>Mehrere Felder mit Umschalt+Klick wählen und <b>Strg+G</b> drücken → ein Paket.</div>', { style: yellow });
     const idea2 = b(520, 190, 230, '<b>Idee B</b><div>Gehört zum selben Paket.</div>', { style: yellow });
