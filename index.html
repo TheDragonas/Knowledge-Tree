@@ -299,7 +299,8 @@ body.previewing #page-meta { pointer-events: none; }
 #viewport.knife { cursor: crosshair; }
 body.painter #viewport .box-text { cursor: copy; }
 #world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
-#layer-pkgs, #layer-boxes { position: absolute; left: 0; top: 0; }
+#layer-pkgs, #layer-boxes, #layer-bg { position: absolute; left: 0; top: 0; }
+#layer-bg { z-index: 0; }   /* Hintergrund-Objekte (1.10): unter Paketen, Verbindungen und allen Zeichnungen */
 #layer-pkgs { z-index: 0; }
 #layer-boxes { z-index: 2; }
 #layer-links { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 1; }
@@ -395,6 +396,12 @@ body[data-theme="dunkel"] #version-bar { background: #3d3410; border-color: #5c4
 .box.conn-target, .pkg.conn-target { box-shadow: 0 0 0 3px var(--accent), var(--box-shadow); }
 .box-rs { position: absolute; right: -4px; top: 10px; bottom: 6px; width: 8px; cursor: ew-resize; }
 .box.locked .box-rs { display: none; }
+/* Hintergrund, nicht ausgewählt: ein Klick wählt es aus, ziehen = Auswahlrahmen – keine Anfasser, kein Hover, kein Textcursor */
+.box.bg:not(.sel) * { pointer-events: none !important; }
+.box.bg:not(.sel) { cursor: default; }
+.box.bg:not(.sel) > .sock, .box.bg:not(.sel) > .box-rs { display: none; }
+.box.bg:not(.sel):hover .box-grip { opacity: 0; }
+.box.plain.bg:not(.sel):hover { border-color: transparent; }
 .sock { position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: var(--accent); border: 2px solid var(--canvas); opacity: 0; cursor: crosshair; transition: opacity .12s, transform .12s; z-index: 2; }
 .sock.l { left: -7px; }
 .sock.r { right: -7px; }
@@ -440,6 +447,7 @@ body[data-theme="dunkel"] .box-text a { color: #7fb0ff; }
 .box-text img[data-kt-src] { max-width: 100%; height: auto; display: inline-block; vertical-align: bottom; border-radius: 2px; }
 .box-text .kt-file { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; margin: 2px 0; border: 1px solid var(--line-2); border-radius: 6px; background: var(--chrome); color: var(--ink); font: 12.5px var(--font-ui); text-decoration: none; cursor: pointer; user-select: none; }
 .box-text .kt-file:hover { border-color: var(--accent); background: var(--accent-soft); }
+.box-text .kt-missing { padding: 8px 10px; border: 1px dashed var(--line-2); border-radius: 6px; background: var(--chrome-2); color: var(--ink-2); font: 12px var(--font-ui); line-height: 1.5; }
 .box-text .kt-tag { cursor: default; }
 .box-text ul.checklist > li { position: relative; padding-left: 22px; }
 .box-text ul.checklist > li::before { content: ""; position: absolute; left: 1px; top: .28em; width: 13px; height: 13px; border: 1.5px solid currentColor; opacity: .75; border-radius: 3px; background: transparent; cursor: pointer; box-sizing: border-box; }
@@ -1247,6 +1255,15 @@ body.touch .kt-scroll.h { height: 6px; } body.touch .kt-scroll.v { width: 6px; }
 .calc-head, .calc-grip, .calc-pill { touch-action: none; }
 body.touch .calc-grip { width: 26px; height: 26px; }
 body.touch .calc-grip.g-se { right: 0; bottom: 0; }
+/* Finger: Schliessen/Minimieren gross genug (auch wenn der Rechner verkleinert ist – --cz = aktueller Zoom),
+ * die Ecke oben rechts klein und halb ausserhalb, damit sie das × nicht verdeckt */
+.calc-hb[data-act="close"], .calc-hb[data-act="min"] { position: relative; z-index: 3; }
+body.touch .calc-head { height: max(42px, calc(36px / var(--cz, 1))); }
+body.touch .calc-hb { width: 32px; height: 30px; }
+body.touch .calc-hb[data-act="close"], body.touch .calc-hb[data-act="min"] { width: max(36px, calc(34px / var(--cz, 1))); height: max(34px, calc(32px / var(--cz, 1))); font-size: max(20px, calc(18px / var(--cz, 1))); border-radius: 8px; }
+body.touch .calc-hb[data-act="close"] { background: rgba(255,255,255,.08); }
+body.touch .calc-hb[data-act="close"]::after { content: ''; position: absolute; inset: -5px -4px -5px -2px; }
+body.touch .calc-grip.g-ne { width: 16px; height: 16px; right: -6px; top: -6px; }
 body.touch .navlist, body.touch #ribbon, body.touch #titlebar, body.touch #statusbar { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 
 /* ---------- Seitenkopf und Statusleiste */
@@ -1389,6 +1406,7 @@ body.lay-phone .chem-status { display: none; }
                 </filter>
               </defs>
             </svg>
+            <div id="layer-bg"></div>
             <div id="layer-pkgs"></div>
             <svg id="layer-draw-under" class="draw-layer" xmlns="http://www.w3.org/2000/svg"><g></g></svg>
             <svg id="layer-links" xmlns="http://www.w3.org/2000/svg"><g id="links-g"></g></svg>
@@ -3056,6 +3074,9 @@ const ICONS = {
   brush: '<path d="M14 4.5 19.5 10"/><path d="M21 3 11.5 12.5"/><path d="M11.5 12.5c-1.8-1-4.3-.6-5.4 1.4-.8 1.4-.5 3.4-3.1 4.6 3.2 1.9 7.8 1.5 9.4-1.2 1-1.7.6-3.6-.9-4.8z"/>',
   textbox: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8M12 9v7"/>',
   image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+  bgImage: '<rect x="2" y="3" width="15" height="12" rx="1.5"/><circle cx="6.5" cy="7.5" r="1.4"/><path d="m2.5 14 4-4 3 3 2-2 5 5"/><path d="M20 7.5V18a2 2 0 0 1-2 2H6.5" opacity=".55"/><path d="M22.5 10.5V20.5a2 2 0 0 1-2 2H9" opacity=".3"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  filePages: '<rect x="3" y="2.5" width="13" height="17" rx="1.5"/><path d="M19 6v13a2 2 0 0 1-2 2H7" opacity=".5"/><path d="M6 7.5h7M6 11h7M6 14.5h4"/>',
   link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
   unlink: '<path d="M15 7h2a5 5 0 0 1 0 10h-2M9 17H7A5 5 0 0 1 7 7h2"/><path d="M4 4l16 16"/>',
   calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
@@ -3393,7 +3414,7 @@ const Backend = (() => {
       setTimeout(collectGarbage, 8000);
       return {
         session: myId, groups: groups || [], pages, zustand: zustand || null, verlauf: verlauf || null,
-        info: { version: '1.10', author: 'TheDragonas', persisted },
+        info: { version: '1.13', author: 'TheDragonas', persisted },
       };
     },
 
@@ -3641,7 +3662,7 @@ function normPage(p) {
   p.modified = p.modified || p.created;
   p.level = clamp(Math.round(+p.level || 0), 0, 2);
   p.drawings = Array.isArray(p.drawings) ? p.drawings.filter(d => d && d.id && (d.type === 'ink' ? Array.isArray(d.pts) && d.pts.length >= 3 : d.type === 'shape')) : [];
-  for (const d of p.drawings) { d.layer = d.layer === 'unten' ? 'unten' : 'oben'; d.w = +d.w || 2; d.color = d.color || '#1f1f1f'; }
+  for (const d of p.drawings) { d.layer = d.layer === 'unten' ? 'unten' : 'oben'; d.w = +d.w || 2; d.color = d.color || '#1f1f1f'; if (d.bg) d.bg = true; else delete d.bg; }
   p.boxes = Array.isArray(p.boxes) ? p.boxes.filter(b => b && b.id) : [];
   p.pkgs = Array.isArray(p.pkgs) ? p.pkgs.filter(k => k && k.id) : [];
   p.links = Array.isArray(p.links) ? p.links.filter(l => l && l.id && l.a && l.b) : [];
@@ -3654,8 +3675,9 @@ function normPage(p) {
     b.style = b.style && typeof b.style === 'object' ? b.style : {};
     b.locked = !!b.locked;
     b.pkg = b.pkg || null;
+    if (b.bg) { b.bg = true; b.pkg = null; } else delete b.bg;   // Hintergrund (seit 1.10)
     // Tabelle (wie Excel) bzw. Diagramm statt Text
-    if (b.sheet && typeof b.sheet === 'object' && typeof XL !== 'undefined') { b.sheet = XL.normSheet(b.sheet); b.html = ''; } else delete b.sheet;
+    if (b.sheet && typeof b.sheet === 'object' && typeof XL !== 'undefined') { b.sheet = XL.normSheet(b.sheet); b.html = ''; delete b.bg; } else delete b.sheet;
     if (b.chart && typeof b.chart === 'object' && typeof Chart !== 'undefined') { b.chart = Chart.norm(b.chart); b.html = ''; } else delete b.chart;
   }
   // Tabellennamen pro Seite eindeutig (für Bezüge wie Tabelle1!A1)
@@ -4281,7 +4303,7 @@ const UI = {
     return this.dialog((d, close) => {
       d.append(el('h2', { text: title }));
       if (opts.text) d.append(el('p', { text: opts.text }));
-      const inp = el('input', { type: 'text', value, placeholder: opts.placeholder || '' });
+      const inp = el('input', { type: opts.password ? 'password' : 'text', value, placeholder: opts.placeholder || '' });
       inp.value = value;
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); close(inp.value); } });
       d.append(inp);
@@ -5939,7 +5961,7 @@ const Canvas = {
 
   init() {
     this.vp = $('#viewport'); this.world = $('#world');
-    this.lp = $('#layer-pkgs'); this.lb = $('#layer-boxes');
+    this.lp = $('#layer-pkgs'); this.lb = $('#layer-boxes'); this.lbg = $('#layer-bg');
     this.svg = $('#layer-links'); this.lg = $('#links-g'); this.ov = $('#layer-overlay'); this.hs = $('#layer-handles');
     this.ro = new ResizeObserver(() => this.layoutSoon());
     const vp = this.vp;
@@ -5961,13 +5983,15 @@ const Canvas = {
       vp.scrollLeft = 0; vp.scrollTop = 0;
       if (this.editing && !this.bulk) { this.view.x -= dx; this.view.y -= dy; this.applyView(); }
     });
-    this.lb.addEventListener('input', e => this.onInput(e));
-    this.lb.addEventListener('focusin', e => this.onFocus(e));
-    this.lb.addEventListener('focusout', e => this.onBlur(e));
-    // Bilder im Text nicht per Ziehen innerhalb des Textes verschieben (das verändert die Formatierung)
-    this.lb.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('.box-text img, .box-text .kt-video')) e.preventDefault(); });
-    this.lb.addEventListener('keydown', e => this.onTextKey(e));
-    this.lb.addEventListener('mouseup', e => { if (Fmt.painter) setTimeout(() => Fmt.applyPainter(), 0); });
+    for (const layer of [this.lb, this.lbg]) {   // Textfelder liegen in der normalen Ebene oder (als Hintergrund) ganz unten
+      layer.addEventListener('input', e => this.onInput(e));
+      layer.addEventListener('focusin', e => this.onFocus(e));
+      layer.addEventListener('focusout', e => this.onBlur(e));
+      // Bilder im Text nicht per Ziehen innerhalb des Textes verschieben (das verändert die Formatierung)
+      layer.addEventListener('dragstart', e => { if (e.target.closest && e.target.closest('.box-text img, .box-text .kt-video')) e.preventDefault(); });
+      layer.addEventListener('keydown', e => this.onTextKey(e));
+      layer.addEventListener('mouseup', e => { if (Fmt.painter) setTimeout(() => Fmt.applyPainter(), 0); });
+    }
     document.addEventListener('selectionchange', () => this.onSelChange());
 
     const title = $('#page-title');
@@ -6079,7 +6103,9 @@ const Canvas = {
     for (const b of p.boxes) {
       seen.add(b.id);
       let e = this.els.get(b.id);
-      if (!e) { e = this.makeBox(b); this.els.set(b.id, e); this.lb.append(e); this.ro.observe(e); }
+      const layer = b.bg ? this.lbg : this.lb;
+      if (!e) { e = this.makeBox(b); this.els.set(b.id, e); layer.append(e); this.ro.observe(e); }
+      else if (e.parentNode !== layer) layer.append(e);
       this.updateBox(b, e, force);
     }
     for (const [id, e] of this.els) if (!seen.has(id)) { this.ro.unobserve(e); e.remove(); this.els.delete(id); }
@@ -6100,6 +6126,7 @@ const Canvas = {
     e.style.top = b.y + 'px';
     e.style.width = b.w + 'px';
     e.style.zIndex = b.z;
+    e.classList.toggle('bg', !!b.bg);
     const locked = this.isLocked(b);
     e.classList.toggle('locked', locked);
     e.classList.toggle('sel', this.sel.has(b.id));
@@ -6326,6 +6353,7 @@ const Canvas = {
   obstacles() {
     const p = this.page, out = [];
     for (const b of p.boxes) {
+      if (b.bg) continue;   // Hintergrund (oft ein ganzseitiges Bild) ist kein Hindernis
       const r = this.rects.get(b.id);
       if (r) out.push({ id: b.id, pkg: b.pkg && this.rects.has(b.pkg) ? b.pkg : null, x: r.x, y: r.y, w: r.w, h: r.h });
     }
@@ -6927,6 +6955,14 @@ const Canvas = {
       this.capture(ev); this.vp.classList.add('panning');
       return;
     }
+    // Hintergrund (wie OneNote „Bild als Hintergrund festlegen“): solange es nicht ausgewählt ist, verhält es sich
+    // wie die freie Fläche – ziehen = Auswahlrahmen (Finger: Seite verschieben), einfach klicken = nur dieses Objekt auswählen
+    const bgB = boxId && ev.button === 0 && !ev.altKey ? this.box(boxId) : null;
+    if (bgB && bgB.bg && !this.sel.has(bgB.id)) {
+      const bgd = Draw.hitBg(this.toWorld(ev.clientX, ev.clientY));   // eine Hintergrund-Zeichnung liegt über dem Hintergrund-Bild
+      this.bgDown(ev, base, bgd ? { kind: 'd', id: bgd.id } : { kind: 'b', id: bgB.id }, touch);
+      return;
+    }
     if (!(Fmt.painter && Fmt.painter.kind === 'box') && (Sheet.onDown(ev) || Chart.onDown(ev))) return;
     if (ev.button === 2) {
       if (ev.shiftKey && t.closest('.box-text')) return; // Browser-Kontextmenü (z.B. Rechtschreibung)
@@ -6936,7 +6972,7 @@ const Canvas = {
         this.capture(ev); this.vp.classList.add('knife');
         return;
       }
-      this.drag = { ...base, type: 'rdown', node, boxId, linkId: t.closest('.link-handle') ? null : linkId, imgId: t.closest('.fimg')?.dataset.img || null, inText: !!t.closest('.box-text'), vx: this.view.x, vy: this.view.y, wpt: this.toWorld(ev.clientX, ev.clientY) };
+      this.drag = { ...base, type: 'rdown', node, boxId, linkId: t.closest('.link-handle') ? null : linkId, imgId: t.closest('.fimg')?.dataset.img || null, fileSrc: t.closest('.kt-file')?.dataset.ktFile || null, fileName: t.closest('.kt-file')?.dataset.name || null, inText: !!t.closest('.box-text'), vx: this.view.x, vy: this.view.y, wpt: this.toWorld(ev.clientX, ev.clientY) };
       this.capture(ev);
       return;
     }
@@ -7043,13 +7079,22 @@ const Canvas = {
     this.drag = { ...base, type: 'empty', inPkg, shift: ev.shiftKey || ev.ctrlKey, noCreate: menuWasOpen || ev.shiftKey || ev.ctrlKey, wasEditing, hadSel: this.hasSelection(), touch, vx: this.view.x, vy: this.view.y };
     this.capture(ev);
   },
+  bgDown(ev, base, obj, touch) {
+    ev.preventDefault();
+    const wasEditing = !!this.editing || document.activeElement === $('#page-title');
+    this.stopEditing();
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    this.vp.focus({ preventScroll: true });
+    this.drag = { ...base, type: 'empty', inPkg: null, shift: ev.shiftKey || ev.ctrlKey, noCreate: true, bgPick: obj, wasEditing, hadSel: this.hasSelection(), touch, vx: this.view.x, vy: this.view.y };
+    this.capture(ev);
+  },
   /* ---------------------------------------------------------- Finger (seit 1.10)
    * Ein Finger auf der Fläche oder auf Text: Seite verschieben; zwei Finger: zoomen und verschieben (Draw.touchDown);
    * langes Drücken (½ s still halten) = Kontextmenü wie Rechtsklick; tippen = Textfeld / bearbeiten. */
   startLongPress(ev) {
     this.cancelLongPress();
     const t = ev.target, boxEl = t.closest && t.closest('.box');
-    if (boxEl && this.editing === boxEl.dataset.id && t.closest('.box-text')) return;   // im bearbeiteten Text wählt langes Drücken Wörter aus
+    if (boxEl && this.editing === boxEl.dataset.id && t.closest('.box-text') && !t.closest('.kt-file, .kt-video, .kt-math')) return;   // im bearbeiteten Text wählt langes Drücken Wörter aus (aber Anhang/Video/Formel haben ein Menü)
     if (t.closest && t.closest('.xl-grid, .xl-kb, .sock, .link-handle, .kt-scroll')) return;
     this._lpInfo = { sx: ev.clientX, sy: ev.clientY, pid: ev.pointerId };
     this._lp = setTimeout(() => this.fireLongPress(), 520);
@@ -7065,7 +7110,7 @@ const Canvas = {
     const boxEl = t.closest('.box'), pkgEl = t.closest('.pkg');
     const boxId = boxEl ? boxEl.dataset.id : null;
     const node = boxId ? this.nodeOf(boxId) : pkgEl ? pkgEl.dataset.id : null;
-    const d = { node, boxId, linkId: t.closest('.link-handle') ? null : (t.closest('[data-link]')?.dataset.link || null), imgId: t.closest('.fimg')?.dataset.img || null, inText: !!t.closest('.box-text'), wpt: this.toWorld(info.sx, info.sy) };
+    const d = { node, boxId, linkId: t.closest('.link-handle') ? null : (t.closest('[data-link]')?.dataset.link || null), imgId: t.closest('.fimg')?.dataset.img || null, fileSrc: t.closest('.kt-file')?.dataset.ktFile || null, fileName: t.closest('.kt-file')?.dataset.name || null, inText: !!t.closest('.box-text'), wpt: this.toWorld(info.sx, info.sy) };
     // laufende Aktion abbrechen, das folgende Loslassen/Antippen schlucken
     this.drag = null;
     if (Draw.drag && Draw.drag.pid === info.pid) Draw.drag = null;
@@ -7075,8 +7120,8 @@ const Canvas = {
     addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); }, { once: true, capture: true, passive: false });
     if (navigator.vibrate) try { navigator.vibrate(12); } catch (e) { /* */ }
     const ev = { clientX: info.sx, clientY: info.sy };
-    if (!d.node && !d.linkId) {
-      const hit = Draw.hitAt(d.wpt, true);
+    if ((!d.node || (d.boxId && this.box(d.boxId) && this.box(d.boxId).bg)) && !d.linkId) {
+      const hit = Draw.hitAt(d.wpt, true, false, true);
       if (hit) { if (!Draw.sel.has(hit.id)) { this.sel.clear(); this.selLink = null; this.refreshSel(); Draw.select([hit.id]); } Draw.contextMenu(info.sx, info.sy); return; }
     }
     this.contextMenu(ev, d);
@@ -7273,6 +7318,10 @@ const Canvas = {
           const a = this.toWorld(d.sx, d.sy), b = this.toWorld(ev.clientX, ev.clientY);
           this.marqueeSelect({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) }, d.shift);
         } else {
+          // Klick auf ein Hintergrund-Objekt (Feld/Bild oder Zeichnung): nur dieses auswählen
+          const bgd = !d.bgPick && Draw.hitBg(this.toWorld(ev.clientX, ev.clientY));
+          const pick = d.bgPick || (bgd ? { kind: 'd', id: bgd.id } : null);
+          if (pick) { this.pickObj(pick, d.shift); this.updateStatus(); break; }
           this.clearSel();
           // Finger: erstes Antippen nach Bearbeiten/Auswahl hebt nur auf (sonst entstünden leicht leere Felder)
           if (!d.noCreate && !(d.touch && (d.wasEditing || d.hadSel))) this.createBoxAt(this.toWorld(ev.clientX, ev.clientY), { pkg: d.inPkg && this.pkg(d.inPkg) && !this.pkg(d.inPkg).locked ? d.inPkg : null });
@@ -7318,8 +7367,9 @@ const Canvas = {
         this.cutLinks(d.pts);
         break;
       case 'rdown': {
-        if (!d.node && !d.linkId) {
-          const hit = Draw.hitAt(d.wpt, true);
+        const onBg = d.boxId && this.box(d.boxId) && this.box(d.boxId).bg;   // Zeichnungen liegen immer über dem Hintergrund
+        if ((!d.node || onBg) && !d.linkId) {
+          const hit = Draw.hitAt(d.wpt, true, false, true);
           if (hit) { if (!Draw.sel.has(hit.id)) { this.sel.clear(); this.selLink = null; this.refreshSel(); Draw.select([hit.id]); } Draw.contextMenu(ev.clientX, ev.clientY); break; }
           const sb = Draw.sel.size && Draw.selBox;
           if (sb && d.wpt.x >= sb.x && d.wpt.x <= sb.x + sb.w && d.wpt.y >= sb.y && d.wpt.y <= sb.y + sb.h) { Draw.contextMenu(ev.clientX, ev.clientY); break; }
@@ -7334,7 +7384,7 @@ const Canvas = {
     const hit = (q) => q && q.x < r.x + r.w && q.x + q.w > r.x && q.y < r.y + r.h && q.y + q.h > r.y;
     const ids = [];
     for (const k of this.page.pkgs) if (hit(this.rects.get(k.id))) ids.push(k.id);
-    for (const b of this.page.boxes) if (!b.pkg && hit(this.rects.get(b.id))) ids.push(b.id);
+    for (const b of this.page.boxes) if (!b.pkg && !b.bg && hit(this.rects.get(b.id))) ids.push(b.id);
     this.select(ids, additive);
     Draw.selectInRect(r);
   },
@@ -7357,6 +7407,17 @@ const Canvas = {
     if (Draw.tool !== 'select' || !this.page) return;
     // wegen Pointer-Capture zeigt ev.target evtl. auf die Fläche -> Element unter der Maus nehmen
     const t = document.elementFromPoint(ev.clientX, ev.clientY) || ev.target;
+    // Doppelklick auf ein Hintergrund-Bild (oder -Diagramm): Textfeld darauf schreiben – wie Klicken auf die freie Fläche
+    const bgEl = t.closest && t.closest('.box.bg');
+    if (bgEl && !t.closest('.box-bar, .box-rs, .sock, .fimg-rs, .fimg-play')) {
+      const b = this.box(bgEl.dataset.id);
+      if (b && (b.chart || this.isPictureBox(b) || isEmptyHtml(b.html))) {
+        ev.preventDefault();
+        this.clearSel();
+        this.createBoxAt(this.toWorld(ev.clientX, ev.clientY));
+        return;
+      }
+    }
     const handle = t.closest('.link-handle');
     if (handle) {
       const l = this.page.links.find(x => x.id === handle.dataset.link);
@@ -7394,20 +7455,57 @@ const Canvas = {
     ev.preventDefault();
     const one = [...ev.dataTransfer.files].filter(f => OneImport.isOneNoteFile(f));
     if (one.length) { OneImport.fromFiles(one); return; }
-    const csv = [...ev.dataTransfer.files].filter(f => /\.(csv|tsv)$/i.test(f.name) || f.type === 'text/csv');
-    if (csv.length && this.page) { let off = 0; for (const f of csv) { const p0 = this.toWorld(ev.clientX, ev.clientY); await Sheet.importCsv(f, { x: p0.x + off, y: p0.y + off }); off += 30; } return; }
-    const files = [...ev.dataTransfer.files].filter(f => f.type.startsWith('image/'));
-    if (!files.length) { UI.toast('Nur Bilder (PNG, JPG, GIF, WebP …), CSV-Dateien und OneNote-Dateien können eingefügt werden'); return; }
-    if (!this.page) { UI.toast('Bitte zuerst eine Seite öffnen'); return; }
+    // ZIP/RAR einer OneNote-/KnowledgeTree-Sicherung → neue Notizbücher mit der Ordnerstruktur
+    const arch = [...ev.dataTransfer.files].filter(f => OneImport.isArchive(f));
+    if (arch.length) { OneImport.fromArchives(arch); return; }
     const pt = this.toWorld(ev.clientX, ev.clientY);
+    const csv = [...ev.dataTransfer.files].filter(f => /\.(csv|tsv)$/i.test(f.name) || f.type === 'text/csv');
+    if (csv.length && this.page) { let off = 0; for (const f of csv) { await Sheet.importCsv(f, { x: pt.x + off, y: pt.y + off }); off += 30; } return; }
+    if (!this.page) { UI.toast('Bitte zuerst eine Seite öffnen'); return; }
     const boxEl = ev.target.closest('.box');
     let target = boxEl && this.box(boxEl.dataset.id);
     if (target && this.isLocked(target)) target = null;
+    const files = [...ev.dataTransfer.files].filter(f => f.type.startsWith('image/'));
     let off = 0;
-    for (const f of files) {
-      await this.insertImage(target ? target.id : null, f, { x: pt.x + off, y: pt.y + off });
-      off += 24;
+    for (const f of files) { await this.insertImage(target ? target.id : null, f, { x: pt.x + off, y: pt.y + off }); off += 24; }
+    // alles andere (PDF, Word, …) als Anhang – Rechtsklick darauf: Seiten als Bilder aufklappen
+    const other = [...ev.dataTransfer.files].filter(f => !f.type.startsWith('image/') && !OneImport.isOneNoteFile(f) && !/\.(csv|tsv)$/i.test(f.name) && f.type !== 'text/csv');
+    for (const f of other) { await this.attachFile(f, { x: pt.x + off, y: pt.y + off }, target ? target.id : null); off += 20; }
+    if (!files.length && !other.length) UI.toast('Diese Datei konnte nicht gelesen werden');
+  },
+
+  /* Datei anhängen (📎) – wie in OneNote; Rechtsklick auf den Anhang klappt die Seiten als Bilder auf */
+  async attachFile(file, worldPt, boxId) {
+    if (!this.page) return null;
+    let src;
+    try { src = await Backend.saveFile(file, (file.name.split('.').pop() || 'bin')); }
+    catch (e) { UI.toast('Datei konnte nicht gespeichert werden: ' + e.message); return null; }
+    const chip = `<div><a class="kt-file" contenteditable="false" data-kt-file="${escapeHtml(src)}" data-name="${escapeHtml(file.name)}">📎 ${escapeHtml(file.name)}</a></div>`;
+    let b = boxId && this.box(boxId);
+    if (b && !this.isLocked(b)) {
+      b.html = (isEmptyHtml(b.html) ? '' : b.html) + chip;
+      const e = this.els.get(b.id); if (e) e._html = null;
+      this.render(); Hist.touchPage(this.pageId); Hist.commit('Datei angehängt');
+    } else {
+      b = this.createBoxAt(worldPt || this.viewCenter(), { html: chip, noFocus: true, w: 320, label: 'Datei angehängt' });
+      if (b) this.select([b.id]);
     }
+    const lab = typeof FilePages !== 'undefined' && FilePages.expandLabel(file.name);
+    UI.toast(lab ? `Angehängt. Rechtsklick auf den Anhang → „${lab}“` : 'Datei angehängt', 5000);
+    return b;
+  },
+  removeFileChip(boxId, src) {
+    const b = this.box(boxId);
+    if (!b) return;
+    const holder = el('div'); holder.innerHTML = b.html;
+    for (const a of holder.querySelectorAll('.kt-file')) {
+      if (a.dataset.ktFile !== src) continue;
+      const wrap = a.closest('div');
+      (wrap && wrap !== holder ? wrap : a).remove();
+    }
+    b.html = holder.innerHTML;
+    const e = this.els.get(b.id); if (e) e._html = null;
+    this.render(); Hist.touchPage(this.pageId); Hist.commit('Anhang entfernt');
   },
 
   /* ---------------------------------------------------------- Textfelder */
@@ -7514,10 +7612,14 @@ const Canvas = {
     if (!p) return out;
     const tol = 6 / this.view.z;
     const inR = (r) => r && w.x >= r.x && w.x <= r.x + r.w && w.y >= r.y && w.y <= r.y + r.h;
-    for (let i = p.drawings.length - 1; i >= 0; i--) { const d = p.drawings[i]; if (d.layer !== 'unten' && DG.hit(d, w, tol)) out.push({ kind: 'd', id: d.id }); }
-    for (const b of [...p.boxes].sort((a, c) => c.z - a.z)) if (inR(this.rects.get(b.id))) out.push({ kind: 'b', id: b.id });
+    const boxes = [...p.boxes].sort((a, c) => c.z - a.z);
+    for (let i = p.drawings.length - 1; i >= 0; i--) { const d = p.drawings[i]; if (d.layer !== 'unten' && !d.bg && DG.hit(d, w, tol)) out.push({ kind: 'd', id: d.id }); }
+    for (const b of boxes) if (!b.bg && inR(this.rects.get(b.id))) out.push({ kind: 'b', id: b.id });
     for (const k of p.pkgs) if (inR(this.rects.get(k.id))) out.push({ kind: 'k', id: k.id });
-    for (let i = p.drawings.length - 1; i >= 0; i--) { const d = p.drawings[i]; if (d.layer === 'unten' && DG.hit(d, w, tol)) out.push({ kind: 'd', id: d.id }); }
+    for (let i = p.drawings.length - 1; i >= 0; i--) { const d = p.drawings[i]; if (d.layer === 'unten' && !d.bg && DG.hit(d, w, tol)) out.push({ kind: 'd', id: d.id }); }
+    // Hintergrund ganz unten: zuerst Zeichnungen, dann Felder/Bilder
+    for (let i = p.drawings.length - 1; i >= 0; i--) { const d = p.drawings[i]; if (d.bg && DG.hit(d, w, tol)) out.push({ kind: 'd', id: d.id }); }
+    for (const b of boxes) if (b.bg && inR(this.rects.get(b.id))) out.push({ kind: 'b', id: b.id });
     return out;
   },
   currentObj() {
@@ -7608,7 +7710,7 @@ const Canvas = {
 
   selectAll() {
     if (!this.page) return;
-    this.select([...this.page.pkgs.map(k => k.id), ...this.page.boxes.filter(b => !b.pkg).map(b => b.id)]);
+    this.select([...this.page.pkgs.map(k => k.id), ...this.page.boxes.filter(b => !b.pkg && !b.bg).map(b => b.id)]);
     Draw.selectAll();
   },
 
@@ -7793,11 +7895,45 @@ const Canvas = {
     return items.length > 0 && items.every(x => x.locked);
   },
 
+  /* Hintergrund (seit 1.10, wie OneNote „Bild als Hintergrund festlegen“): liegt ganz unten (eigene Ebene, unter
+   * Paketen, Verbindungen und Zeichnungen), wird von Auswahlrahmen, Lasso und Strg+A übersprungen, ist kein Hindernis
+   * für Verbindungen und wird vom Radierer nicht erfasst. Einzeln anklicken wählt es aus; Rechtsklick → nochmals = normal. */
+  toggleBackground() {
+    const boxes = [...this.sel].map(id => this.box(id)).filter(b => b && !b.sheet);
+    const draws = Draw.selected();
+    if (!boxes.length && !draws.length) { UI.toast('Zuerst ein Bild, Textfeld oder eine Zeichnung auswählen'); return; }
+    this.setBackground(!(boxes.every(b => b.bg) && draws.every(d => d.bg)), boxes, draws);
+  },
+  setBackground(on, boxes, draws) {
+    const p = this.page;
+    if (!p || (!boxes.length && !draws.length)) return;
+    this.stopEditing();
+    // Reihenfolge innerhalb der Ebene neu zählen: die geänderten Objekte kommen nach unten
+    const restack = (list, first) => { let z = 0; for (const b of first) b.z = ++z; for (const b of list.filter(x => !first.includes(x)).sort((a, c) => a.z - c.z)) b.z = ++z; };
+    for (const b of boxes) {
+      if (on) { b.bg = true; b.pkg = null; }   // ein Hintergrund gehört zu keinem Paket
+      else delete b.bg;
+    }
+    p.pkgs = p.pkgs.filter(k => p.boxes.some(b => b.pkg === k.id));
+    p.links = p.links.filter(l => (this.box(l.a) || this.pkg(l.a)) && (this.box(l.b) || this.pkg(l.b)));
+    if (boxes.length) restack(p.boxes.filter(b => !!b.bg === on), boxes);
+    for (const d of draws) { if (on) d.bg = true; else delete d.bg; }
+    if (on) { this.sel.clear(); this.selImg = null; this.selLink = null; Draw.sel.clear(); }
+    this.render(true);
+    this.refreshSel();
+    Hist.touchPage(this.pageId);
+    const n = boxes.length + draws.length;
+    Hist.commit(on ? 'Als Hintergrund festgelegt' : 'Hintergrund aufgehoben');
+    UI.toast(on ? `${n === 1 ? 'Liegt' : `${n} Objekte liegen`} jetzt im Hintergrund – Auswahlrahmen, Lasso und Strg+A überspringen ${n === 1 ? 'es' : 'sie'}; einzeln anklicken wählt ${n === 1 ? 'es' : 'eines'} aus, Rechtsklick → nochmals = wieder normal`
+      : 'Wieder ein normales Objekt', on ? 5000 : 2200);
+  },
+
   order(front) {
     if (Draw.sel.size) Draw.order(front);
     const boxes = this.selectedBoxes();
     if (!boxes.length) return;
     const p = this.page;
+    if (front) for (const b of boxes) delete b.bg;   // „In den Vordergrund“ holt ein Hintergrund-Objekt wieder nach vorne
     boxes.sort((a, b) => a.z - b.z);
     if (front) { let z = this.maxZ(); for (const b of boxes) b.z = ++z; }
     else {
@@ -8036,6 +8172,21 @@ const Canvas = {
   contextMenu(ev, d) {
     const x = ev.clientX, y = ev.clientY;
     const w = this.toWorld(x, y);
+    // Rechtsklick / langes Drücken auf einen 📎-Anhang: Seiten als Bilder aufklappen (wie OneNote „Dateiausdruck“)
+    if (d.fileSrc && typeof FilePages !== 'undefined') {
+      if (d.boxId && !this.sel.has(d.boxId)) this.select([d.boxId]);
+      const lab = FilePages.expandLabel(d.fileName);
+      UI.menu([
+        { head: d.fileName || 'Datei' },
+        lab
+          ? { label: lab, icon: 'filePages', action: () => FilePages.expand(d.boxId, d.fileSrc, d.fileName) }
+          : { label: 'Als Seiten nicht möglich – in Word „Speichern als PDF“', icon: 'filePages', disabled: true },
+        { label: 'Öffnen / Herunterladen', icon: 'download', action: () => downloadAttachment(d.fileSrc, d.fileName) },
+        '-',
+        { label: 'Anhang entfernen', icon: 'trash', danger: true, action: () => this.removeFileChip(d.boxId, d.fileSrc) },
+      ], x, y);
+      return;
+    }
     if (d.linkId) {
       const l = this.page.links.find(q => q.id === d.linkId);
       if (!l) return;
@@ -8069,6 +8220,7 @@ const Canvas = {
       UI.menu([
         { label: 'Bild gross anzeigen', icon: 'image', action: () => Backend.imgURL(im.src).then(u => UI.lightbox(u)) },
         { label: 'Volle Breite', icon: 'sameWidth', disabled: this.isLocked(b), action: () => { const cw = this.contentW(b); im.h = Math.round(im.h * cw / im.w); im.w = cw; im.x = 0; this.render(); Hist.touchPage(this.pageId); Hist.commit('Bildgrösse geändert'); } },
+        this.isPictureBox(b) ? { label: 'Bild als Hintergrund festlegen', icon: 'bgImage', checked: !!b.bg, action: () => this.setBackground(!b.bg, [b], []) } : null,
         '-',
         { label: 'Bild entfernen', icon: 'trash', danger: true, key: 'Entf', disabled: this.isLocked(b), action: () => this.removeImage(b.id, im.id) },
       ], x, y);
@@ -8101,6 +8253,12 @@ const Canvas = {
       else if (b && b.chart) items.push({ label: 'Diagramm bearbeiten …', icon: 'pencil', disabled: this.isLocked(b), action: () => Chart.editDialog(b) }, { label: 'Werte anzeigen', icon: 'readout', action: () => Chart.showData(b) }, { label: 'Werte als Tabelle einfügen', icon: 'table', action: () => Chart.toSheet(b) }, '-');
       else if (b) items.push({ label: 'Bild einfügen …', icon: 'image', disabled: this.isLocked(b), action: () => Cmd.run('insertImage', { boxId: b.id }) });
       if (b && !b.sheet && /<table/i.test(b.html)) items.push({ label: 'In Rechentabelle umwandeln (wie Excel)', icon: 'table', disabled: this.isLocked(b), action: () => Sheet.fromHtmlTable(b.id) });
+      // Als Hintergrund festlegen (nicht für Tabellen und ganze Pakete)
+      const bgList = [...this.sel].map(id => this.box(id)).filter(x => x && !x.sheet);
+      if (bgList.length && !(k && !d.boxId)) {
+        const allBg = bgList.every(x => x.bg), pics = bgList.every(x => this.isPictureBox(x));
+        items.push({ label: pics ? (bgList.length > 1 ? 'Bilder als Hintergrund festlegen' : 'Bild als Hintergrund festlegen') : 'Als Hintergrund festlegen', icon: 'bgImage', checked: allBg, action: () => this.setBackground(!allBg, bgList, []) });
+      }
       items.push(
         { label: locked ? 'Entsperren' : 'Sperren', icon: locked ? 'unlock' : 'lock', key: 'Strg+Umsch+L', action: () => this.setLock(!locked) },
         multi ? { label: 'Gruppieren (Paket)', icon: 'group', key: 'Strg+G', action: () => this.group() } : null,
@@ -8146,6 +8304,7 @@ const Canvas = {
     left.textContent = `${path}  ·  ${nB} Textfeld${nB === 1 ? '' : 'er'}${nT ? ` · ${nT} Tabelle${nT === 1 ? '' : 'n'}` : ''}${nC ? ` · ${nC} Diagramm${nC === 1 ? '' : 'e'}` : ''} · ${p.pkgs.length} Paket${p.pkgs.length === 1 ? '' : 'e'} · ${p.links.length} Verbindung${p.links.length === 1 ? '' : 'en'}${p.drawings.length ? ` · ${p.drawings.length} Zeichnung${p.drawings.length === 1 ? '' : 'en'}` : ''}`;
     let h;
     if (this.selLink) h = 'Verbindung: Linie oder Mittelpunkt ziehen = biegen · Endpunkte ziehen = Ansatz verschieben / an anderes Feld hängen · Doppelklick Punkt = zurücksetzen · Entf = löschen';
+    else if (this.sel.size === 1 && this.box([...this.sel][0]) && this.box([...this.sel][0]).bg) h = 'Hintergrund ausgewählt · ziehen = verschieben · Doppelklick = Textfeld darauf schreiben · Rechtsklick → „… als Hintergrund festlegen“ = wieder normal';
     else if (this.selImg) h = 'Bild ausgewählt · ziehen = verschieben (Text fliesst herum) · Ecke = Grösse · Entf = entfernen';
     else if (this.sel.size > 1) h = 'Mehrere ausgewählt · Strg+G = zu Paket gruppieren · Rechtsklick ziehen = verbinden';
     else if (this.sel.size === 1 && this.box([...this.sel][0]) && this.box([...this.sel][0]).chart) h = 'Diagramm: Doppelklick = bearbeiten · Zeiger auf die Kurve = Werte ablesen · Klick auf einen Punkt = Zelle in der Tabelle · Ecke = Grösse';
@@ -8560,7 +8719,7 @@ const Draw = {
     if (!this.gOver) return;
     if (Canvas.scrollSoon) Canvas.scrollSoon();
     if (!p) { this.gUnder.innerHTML = this.gMark.innerHTML = this.gOver.innerHTML = ''; this.sel.clear(); this.renderSel(); this.renderTools(); return; }
-    const out = { u: [], m: [], o: [] };
+    const out = { b: [], u: [], m: [], o: [] };
     const seen = new Set();
     for (const d of p.drawings) {
       seen.add(d.id);
@@ -8568,13 +8727,14 @@ const Draw = {
       let c = this.cache.get(d.id);
       if (!c || c.key !== key) { c = { key, html: this.markup(d) }; this.cache.set(d.id, c); }
       const g = `<g data-d="${d.id}"${this.sel.has(d.id) ? ' class="dsel"' : ''}>${c.html}</g>`;
-      if (d.layer === 'unten') out.u.push(g);
+      if (d.bg) out.b.push(g);   // Hintergrund: ganz unten in der unteren Ebene
+      else if (d.layer === 'unten') out.u.push(g);
       else if (d.type === 'ink' && d.kind === 'marker') out.m.push(g);
       else out.o.push(g);
     }
     for (const id of this.cache.keys()) if (!seen.has(id)) this.cache.delete(id);
     for (const id of [...this.sel]) if (!seen.has(id)) this.sel.delete(id);
-    this.gUnder.innerHTML = out.u.join('');
+    this.gUnder.innerHTML = out.b.join('') + out.u.join('');
     this.gMark.innerHTML = out.m.join('');
     this.gOver.innerHTML = out.o.join('');
     this.renderSel();
@@ -8618,27 +8778,41 @@ const Draw = {
   selectInRect(r) {
     const ids = [];
     for (const d of Canvas.page.drawings) {
+      if (d.bg) continue;   // Hintergrund wird vom Auswahlrahmen übersprungen
       const b = DG.bbox(d);
       if (b.x >= r.x && b.y >= r.y && b.x + b.w <= r.x + r.w && b.y + b.h <= r.y + r.h) ids.push(d.id);
     }
     if (ids.length) this.select(ids, true);
   },
-  hitAt(w, includeUnder, skipMarker) {
+  /* includeBg: auch Hintergrund-Zeichnungen (sonst nur, wenn sie schon ausgewählt sind – zum Verschieben) */
+  hitAt(w, includeUnder, skipMarker, includeBg) {
     const p = Canvas.page;
     if (!p) return null;
     const tol = 5 / Canvas.view.z;
     for (let i = p.drawings.length - 1; i >= 0; i--) {
       const d = p.drawings[i];
-      if (d.layer === 'unten') continue;
+      if (d.layer === 'unten' || d.bg) continue;
       if (skipMarker && d.type === 'ink' && d.kind === 'marker') continue;
       if (DG.hit(d, w, tol)) return d;
     }
     if (includeUnder) {
       for (let i = p.drawings.length - 1; i >= 0; i--) {
         const d = p.drawings[i];
-        if (d.layer === 'unten' && DG.hit(d, w, tol)) return d;
+        if (d.layer === 'unten' && !d.bg && DG.hit(d, w, tol)) return d;
       }
     }
+    for (let i = p.drawings.length - 1; i >= 0; i--) {
+      const d = p.drawings[i];
+      if (d.bg && (includeBg || this.sel.has(d.id)) && DG.hit(d, w, tol)) return d;
+    }
+    return null;
+  },
+  /* oberste Hintergrund-Zeichnung an dieser Stelle (Klick auf die Fläche wählt sie aus) */
+  hitBg(w) {
+    const p = Canvas.page;
+    if (!p) return null;
+    const tol = 5 / Canvas.view.z;
+    for (let i = p.drawings.length - 1; i >= 0; i--) { const d = p.drawings[i]; if (d.bg && DG.hit(d, w, tol)) return d; }
     return null;
   },
 
@@ -8724,7 +8898,8 @@ const Draw = {
     const onImg = !!t.closest('.fimg') && !t.closest('.fimg-rs, .fimg-play');
     if (t.closest('.sock, .link-handle, .box-rs, .fimg-rs, .fimg-play, .pkg-head, [data-link]') || (onImg && !this.hitAt(w, false, false))) { if (!ev.shiftKey && !ev.ctrlKey) this.clearSel(true); return false; }
     const inText = !!t.closest('.box-text');
-    const onNode = !!t.closest('.box, .pkg');
+    // ein nicht ausgewähltes Hintergrund-Objekt zählt wie die freie Fläche (Zeichnungen darüber sind treffbar)
+    const onNode = !!t.closest('.box, .pkg') && !t.closest('.box.bg:not(.sel)');
     const d = this.hitAt(w, !onNode, inText);
     if (!d) { if (!ev.shiftKey && !ev.ctrlKey) this.clearSel(true); return false; }
     ev.preventDefault();
@@ -8897,13 +9072,14 @@ const Draw = {
         const poly = d.pts;
         const ids = [];
         for (const dr of p.drawings) {
+          if (dr.bg) continue;   // Hintergrund wird vom Lasso übersprungen
           const pts = DG.lines(dr).lines.flat();
           const inside = pts.filter(q => DG.inside(q, poly)).length;
           if (inside >= Math.max(1, pts.length * 0.6)) ids.push(dr.id);
         }
         const nodes = [];
         for (const k of p.pkgs) { const r = Canvas.rects.get(k.id); if (r && DG.inside(rectCenter(r), poly)) nodes.push(k.id); }
-        for (const b of p.boxes) { if (b.pkg && nodes.includes(b.pkg)) continue; const r = Canvas.rects.get(b.id); if (r && DG.inside(rectCenter(r), poly)) nodes.push(b.id); }
+        for (const b of p.boxes) { if (b.bg || (b.pkg && nodes.includes(b.pkg))) continue; const r = Canvas.rects.get(b.id); if (r && DG.inside(rectCenter(r), poly)) nodes.push(b.id); }
         if (!d.additive) { Canvas.sel.clear(); Canvas.selLink = null; }
         for (const id of nodes) Canvas.sel.add(id);
         Canvas.refreshSel();
@@ -8963,7 +9139,7 @@ const Draw = {
     let changed = false;
     const next = [];
     for (const dr of p.drawings) {
-      if (!DG.hit(dr, w, r)) { next.push(dr); continue; }
+      if (dr.bg || !DG.hit(dr, w, r)) { next.push(dr); continue; }   // Hintergrund radiert man nicht weg
       changed = true;
       if (!d.point || dr.type !== 'ink') continue;
       // Punkt-Radierer: Strich an dieser Stelle teilen
@@ -9122,7 +9298,7 @@ const Draw = {
     for (const d of this.selected()) DG.map(d, (x, y) => ({ x: x + dx, y: y + dy }));
     this.render();
   },
-  selectAll() { if (Canvas.page) this.select(Canvas.page.drawings.map(d => d.id), true); },
+  selectAll() { if (Canvas.page) this.select(Canvas.page.drawings.filter(d => !d.bg).map(d => d.id), true); },
   recolor(color) {
     const list = this.selected();
     if (!list.length) return false;
@@ -9151,7 +9327,7 @@ const Draw = {
     const p = Canvas.page, list = this.selected();
     if (!list.length) return false;
     const rest = p.drawings.filter(d => !this.sel.has(d.id));
-    for (const d of list) d.layer = front ? 'oben' : 'unten';
+    for (const d of list) { d.layer = front ? 'oben' : 'unten'; if (front) delete d.bg; }   // nach vorne holen hebt „Hintergrund“ auf
     p.drawings = front ? [...rest, ...list] : [...list, ...rest];
     this.render();
     Hist.touchPage(Canvas.pageId); Hist.commit(front ? 'Zeichnung vor den Text' : 'Zeichnung hinter den Text');
@@ -9173,6 +9349,7 @@ const Draw = {
       '-',
       { label: 'Vor den Text', icon: 'layerUp', action: () => this.order(true) },
       { label: 'Hinter den Text', icon: 'layerDown', action: () => this.order(false) },
+      { label: 'Als Hintergrund festlegen', icon: 'bgImage', checked: list.length > 0 && list.every(d => d.bg), action: () => Canvas.setBackground(!list.every(d => d.bg), [], list) },
       list.some(d => d.type === 'ink') ? { label: 'Freihand → Form', icon: 'inkShape', action: () => this.inkToShape() } : null,
       list.some(d => d.type === 'ink') ? { label: 'Freihand → Text (Beta)', icon: 'inkText', action: () => this.inkToText() } : null,
       list.some(d => d.type === 'ink') ? { label: 'Fotomath: Rechnung erkennen', icon: 'fotomath', action: () => Fotomath.start() } : null,
@@ -12207,13 +12384,19 @@ const Calc = {
   /* Grösse: gewählte Stufe, aber nie grösser als das Fenster (Handy, kleines Fenster) */
   applyScale() {
     if (!this.body) return;
-    const cur = parseFloat(this.body.style.zoom) || 1;
-    const r = this.body.getBoundingClientRect();
-    const W1 = r.width / cur, H1 = r.height / cur;
     const vh = (window.visualViewport ? visualViewport.height : innerHeight);
-    const fit = W1 && H1 ? Math.min((innerWidth - 12) / W1, (vh - 12) / H1) : 1;
-    this.fitScale = fit;
-    this.body.style.zoom = String(Math.max(0.45, Math.min(this.scale(), fit)));
+    // zweimal: mit dem Finger bleibt die Kopfzeile gleich gross (--cz), dadurch ändert sich die Höhe leicht mit dem Zoom
+    for (let i = 0; i < 2; i++) {
+      const cur = parseFloat(this.body.style.zoom) || 1;
+      const r = this.body.getBoundingClientRect();
+      const W1 = r.width / cur, H1 = r.height / cur;
+      const fit = W1 && H1 ? Math.min((innerWidth - 12) / W1, (vh - 12) / H1) : 1;
+      this.fitScale = fit;
+      const z = Math.max(0.45, Math.min(this.scale(), fit));
+      if (Math.abs(z - cur) < 0.002 && i) break;
+      this.body.style.zoom = String(z);
+      this.win.style.setProperty('--cz', String(z));   // für Knöpfe, die mit dem Finger immer gleich gross bleiben sollen
+    }
   },
   build() {
     this.load();
@@ -14739,6 +14922,225 @@ const Fotomath = {
 
 </script>
 <script>
+/* ---- js/filepages.js ---- */
+'use strict';
+/* Dateien als Seiten-Bilder aufklappen (seit 1.11) – wie „Dateiausdruck“ in OneNote.
+ *
+ * Man hängt eine Datei an (ziehen, Einfügen → Datei, Strg+V) – sie erscheint als 📎-Anhang.
+ * Rechtsklick (Finger: lange drücken) auf den Anhang → „Seiten als Bilder aufklappen“:
+ *   - PDF:            jede Seite wird als Bild gerendert (PDF.js, bei Bedarf aus dem Internet geladen – wie bei „Freihand → Text“)
+ *   - Bild:           wird einfach als Bild eingefügt
+ *   - Word/PowerPoint/Excel (.docx/.pptx/.xlsx): die enthaltenen Bilder werden herausgezogen (Office-Dateien
+ *     sind ZIP-Archive; für seitengenaue Darstellung in Word „Speichern als PDF“ und das PDF aufklappen)
+ *
+ * Wir umgehen keinen Schutz: ein PDF mit Druck-/Kopier-Einschränkungen wird ganz normal gerendert (diese Marken
+ * sind keine Zugriffssperre). Ist ein PDF mit Passwort verschlüsselt, wird nach dem Passwort gefragt (nicht geknackt).
+ * Die gerenderten Seiten sind normale KnowledgeTree-Bilder und gehen deshalb in beide Richtungen mit OneNote. */
+
+const FilePages = {
+  // feste Version, erst bei Bedarf geladen (klassisches UMD-Bündel, setzt window.pdfjsLib)
+  PDFJS: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  PDFJS_WORKER: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  DISPLAY_W: 560,          // Anzeigebreite einer Seite auf der Fläche
+  MAX_PAGES: 150,          // Schutz gegen sehr grosse PDFs
+  RENDER_W: 1500,          // Pixelbreite beim Rendern (Schärfe vs. Grösse)
+
+  kindOf(name) {
+    const e = (name || '').toLowerCase().split('.').pop();
+    if (e === 'pdf') return 'pdf';
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(e)) return 'image';
+    if (['docx', 'pptx', 'xlsx', 'docm', 'pptm', 'xlsm'].includes(e)) return 'office';
+    return 'other';
+  },
+  /* steht „Aufklappen“ für diese Datei zur Verfügung? (Beschriftung fürs Menü) */
+  expandLabel(name) {
+    const k = this.kindOf(name);
+    if (k === 'pdf') return 'Seiten als Bilder aufklappen';
+    if (k === 'image') return 'Als Bild einfügen';
+    if (k === 'office') return 'Bilder aus der Datei einfügen';
+    return null;
+  },
+
+  async loadPdf() {
+    if (!window.pdfjsLib) await Draw.loadScript(this.PDFJS);
+    const lib = window.pdfjsLib;
+    if (!lib) throw new Error('PDF-Modul konnte nicht geladen werden');
+    try { lib.GlobalWorkerOptions.workerSrc = this.PDFJS_WORKER; } catch (e) { /* */ }
+    return lib;
+  },
+
+  async bytesOf(src) {
+    const url = await Backend.imgURL(src);
+    if (!url) throw new Error('Datei nicht gefunden');
+    const buf = await (await fetch(url)).arrayBuffer();
+    return new Uint8Array(buf);
+  },
+
+  /* Hauptaufgabe: Anhang aufklappen. boxId = Feld mit dem 📎-Anhang (als Anker für die Lage). */
+  async expand(boxId, src, name) {
+    if (!Canvas.page) return;
+    const kind = this.kindOf(name);
+    if (kind === 'other') {
+      UI.toast('Diese Datei lässt sich nicht als Seiten darstellen. Tipp: in Word/PowerPoint „Speichern als PDF“ und das PDF aufklappen.', 6000);
+      return;
+    }
+    const anchor = boxId && Canvas.box(boxId);
+    let pages;
+    try {
+      const buf = await this.bytesOf(src);
+      if (kind === 'pdf') pages = await this.renderPdf(buf, name);
+      else if (kind === 'image') pages = [{ blob: new Blob([buf], { type: this.mimeOf(name) }), w: 0, h: 0 }];
+      else pages = await this.officeImages(buf, name);
+    } catch (e) {
+      if (e && e.message === 'abgebrochen') return;
+      UI.toast('Konnte nicht aufgeklappt werden: ' + (e && e.message || e), 6000);
+      return;
+    }
+    if (!pages || !pages.length) {
+      UI.toast(kind === 'office' ? 'In dieser Datei stecken keine (anzeigbaren) Bilder. Für seitengenaue Darstellung in Word „Speichern als PDF“ und das PDF aufklappen.' : 'Keine Seiten gefunden', 6000);
+      return;
+    }
+    await this.placeColumn(anchor, pages, name);
+  },
+
+  mimeOf(name) {
+    const e = (name || '').toLowerCase().split('.').pop();
+    return ({ png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', svg: 'image/svg+xml' })[e] || 'image/png';
+  },
+
+  /* ---------------------------------------------------------- PDF → Seitenbilder */
+  async renderPdf(buf, name) {
+    const lib = await this.loadPdf();
+    let pdf, password;
+    for (;;) {
+      try { pdf = await lib.getDocument({ data: buf.slice(), password }).promise; break; }
+      catch (e) {
+        const code = e && (e.name || e.code);
+        if (code === 'PasswordException' || code === 1 || code === 2) {
+          const pw = await UI.prompt('Dieses PDF ist mit einem Passwort verschlüsselt. Passwort eingeben:', '', { password: true });
+          if (pw == null) throw new Error('abgebrochen');
+          password = pw;
+          continue;
+        }
+        throw new Error('PDF konnte nicht gelesen werden (ist es eine gültige PDF-Datei?)');
+      }
+    }
+    const total = Math.min(pdf.numPages, this.MAX_PAGES);
+    const out = [];
+    for (let n = 1; n <= total; n++) {
+      UI.toast(`Seite ${n} von ${pdf.numPages} wird gerendert …`, 60000);
+      const page = await pdf.getPage(n);
+      const vp0 = page.getViewport({ scale: 1 });
+      const scale = Math.min(this.RENDER_W / vp0.width, 3);
+      const vp = page.getViewport({ scale });
+      const cv = el('canvas'); cv.width = Math.ceil(vp.width); cv.height = Math.ceil(vp.height);
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+      out.push({ blob, w: cv.width, h: cv.height });
+      if (page.cleanup) try { page.cleanup(); } catch (e) { /* */ }
+    }
+    if (pdf.numPages > total) UI.toast(`Nur die ersten ${total} von ${pdf.numPages} Seiten aufgeklappt.`, 5000);
+    try { pdf.destroy(); } catch (e) { /* */ }
+    return out;
+  },
+
+  /* ---------------------------------------------------------- Office-Datei (ZIP) → enthaltene Bilder */
+  async officeImages(buf) {
+    const files = await unzip(buf);
+    const names = [...files.keys()].filter(n => /\/media\/[^/]+\.(png|jpe?g|gif|bmp|webp)$/i.test(n))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const out = [];
+    for (const n of names) {
+      const data = await files.get(n)();
+      if (data && data.length) out.push({ blob: new Blob([data], { type: this.mimeOf(n) }), w: 0, h: 0 });
+    }
+    return out;
+  },
+
+  /* ---------------------------------------------------------- Seiten als Spalte unter den Anhang legen */
+  async placeColumn(anchor, pages, name) {
+    const p = Canvas.page;
+    const x0 = anchor ? anchor.x : (Canvas.viewCenter().x - this.DISPLAY_W / 2);
+    let y = anchor ? anchor.y + (Canvas.els.get(anchor.id)?.offsetHeight || 60) + 16 : Canvas.viewCenter().y;
+    let z = Canvas.maxZ();
+    const made = [];
+    const dw = this.DISPLAY_W;
+    Canvas.stopEditing();
+    for (let i = 0; i < pages.length; i++) {
+      const pg = pages[i];
+      UI.toast(`Seite ${i + 1} von ${pages.length} wird eingefügt …`, 60000);
+      let src, dim;
+      try { src = await Backend.saveImage(pg.blob); dim = await loadImageSize(await Backend.imgURL(src)); }
+      catch (e) { continue; }
+      const w = dw, h = Math.round(dim.h * dw / dim.w);
+      const b = {
+        id: uid('b'), x: Math.round(x0), y: Math.round(y), w: w + 2 * (PADX + BORDER),
+        html: '', images: [{ id: uid('i'), src, x: 0, y: 0, w, h }], z: ++z,
+        style: {}, locked: false, pkg: null,
+      };
+      p.boxes.push(b);
+      made.push(b.id);
+      y += h + 2 * (BAR + BORDER) + 14;
+    }
+    Canvas.render();
+    if (made.length) { Canvas.select(made); Hist.touchPage(Canvas.pageId); Hist.commit(pages.length === 1 ? 'Datei als Bild eingefügt' : `${made.length} Seiten als Bilder aufgeklappt`); }
+    UI.toast(made.length === 1 ? 'Als Bild eingefügt' : `${made.length} Seite${made.length === 1 ? '' : 'n'} als Bilder aufgeklappt – liegen untereinander unter dem Anhang`, 4000);
+  },
+};
+
+/* --------------------------------------------------------------------------- winziger ZIP-Leser
+ * Office-Dateien (.docx/.pptx/.xlsx) sind ZIP-Archive. Wir lesen das zentrale Verzeichnis und packen
+ * die gewünschten Einträge mit DecompressionStream('deflate-raw') aus – ohne Fremd-Bibliothek. */
+async function inflateRaw(u8) {
+  if (typeof DecompressionStream === 'undefined') throw new Error('Dieser Browser kann die Datei nicht entpacken');
+  const ds = new DecompressionStream('deflate-raw');
+  const w = ds.writable.getWriter();
+  w.write(u8); w.close();
+  const ab = await new Response(ds.readable).arrayBuffer();
+  return new Uint8Array(ab);
+}
+async function unzip(u8) {
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  // End-of-Central-Directory suchen (Signatur 0x06054b50), von hinten
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= 0 && i >= u8.length - 22 - 65536; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('Keine gültige Office-/ZIP-Datei');
+  const count = dv.getUint16(eocd + 10, true);
+  let cdOff = dv.getUint32(eocd + 16, true);
+  const dec = new TextDecoder('utf-8');
+  const entries = new Map();
+  let p = cdOff;
+  for (let i = 0; i < count && p + 46 <= u8.length; i++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true);
+    const compSize = dv.getUint32(p + 20, true);
+    const nameLen = dv.getUint16(p + 28, true);
+    const extraLen = dv.getUint16(p + 30, true);
+    const commentLen = dv.getUint16(p + 32, true);
+    const lho = dv.getUint32(p + 42, true);
+    const nm = dec.decode(u8.subarray(p + 46, p + 46 + nameLen));
+    p += 46 + nameLen + extraLen + commentLen;
+    // Eintrag als Funktion, die erst beim Zugriff auspackt
+    entries.set(nm, async () => {
+      if (dv.getUint32(lho, true) !== 0x04034b50) return null;
+      const lnameLen = dv.getUint16(lho + 26, true);
+      const lextraLen = dv.getUint16(lho + 28, true);
+      const start = lho + 30 + lnameLen + lextraLen;
+      const comp = u8.subarray(start, start + compSize);
+      if (method === 0) return comp.slice();
+      if (method === 8) return inflateRaw(comp);
+      return null;   // andere Verfahren (selten) überspringen
+    });
+  }
+  return entries;
+}
+
+</script>
+<script>
 /* ---- js/guide.js ---- */
 'use strict';
 /* Erste Schritte (seit 1.9): Beispielseiten mit echten, lebenden Tabellen, Diagrammen und Handschrift zum Ausprobieren.
@@ -15329,7 +15731,9 @@ const Find = {
       if (!p) continue;
       if (p.title.toLowerCase().includes(ql)) this.results.push({ pid, boxId: null, text: p.title, g });
       for (const b of p.boxes) {
-        const t = (b.sheet ? Sheet.texts(b) : b.chart ? [b.chart.title, b.chart.xTitle, b.chart.yTitle].join(' ') : htmlToText(b.html)).replace(/\s+/g, ' ');
+        // von OneNote erkannter Bildtext (OCR) gehört zur Suche: freie Bilder (im.ocr) und Bilder im Text (data-ocr)
+        const ocr = [...(b.images || []).map(im => im.ocr || ''), ...[...(b.html || '').matchAll(/data-ocr="([^"]*)"/g)].map(m => m[1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'))].filter(Boolean).join(' ');
+        const t = ((b.sheet ? Sheet.texts(b) : b.chart ? [b.chart.title, b.chart.xTitle, b.chart.yTitle].join(' ') : htmlToText(b.html)) + (ocr ? ' ' + ocr : '')).replace(/\s+/g, ' ');
         const i = t.toLowerCase().indexOf(ql);
         if (i < 0) continue;
         total += t.toLowerCase().split(ql).length - 1;
@@ -15428,6 +15832,14 @@ function pickImageFiles() {
     inp.click();
   });
 }
+function pickAnyFiles() {
+  return new Promise((res) => {
+    const inp = el('input', { type: 'file', multiple: true, style: { display: 'none' } });
+    inp.addEventListener('change', () => { res([...inp.files]); inp.remove(); });
+    document.body.append(inp);
+    inp.click();
+  });
+}
 
 /* ---------------------------------------------------------------- Befehlsliste */
 const canText = () => !!Canvas.editing || Canvas.selectedBoxes().some(b => !b.sheet && !b.chart);
@@ -15474,6 +15886,7 @@ const COMMANDS = {
   backup: { run: async () => { await Save.flushAll(); try { UI.toast(await Backend.backup(), 3500); } catch (e) { UI.toast('Backup fehlgeschlagen: ' + e.message); } } },
   restore: { run: () => App.restoreBackup() },
   oneImport: { run: () => OneImport.start() },
+  importArchive: { run: () => OneImport.importArchive() },
   trash: { run: () => App.showTrash() },
   openSaves: { run: () => Backend.openFolder('saves') },
   openCache: { run: () => Backend.openFolder('cache') },
@@ -15532,6 +15945,16 @@ const COMMANDS = {
     }, enabled: hasPage,
   },
   insertTable: { run: () => Fmt.apply(() => Fmt.exec('insertHTML', '<table><tbody>' + '<tr><td><br></td><td><br></td><td><br></td></tr>'.repeat(3) + '</tbody></table><div><br></div>'), 'Tabelle eingefügt'), enabled: canText },
+  // Datei anhängen (PDF, Word …); Rechtsklick auf den Anhang: Seiten als Bilder aufklappen
+  insertFile: {
+    run: async (opt = {}) => {
+      if (!Canvas.page) return;
+      const boxId = opt.boxId || Canvas.editing || (Canvas.sel.size === 1 && Canvas.box([...Canvas.sel][0]) ? [...Canvas.sel][0] : null);
+      const files = await pickAnyFiles();
+      let off = 0;
+      for (const f of files) { await Canvas.attachFile(f, boxId ? null : (opt.at || null), boxId); off += 20; }
+    }, enabled: hasPage,
+  },
   // Tabellen (wie Excel)
   insertSheet: {
     run: (o = {}) => {
@@ -21305,7 +21728,7 @@ const Export = {
         if (!page) continue;
         prog.set(`Seite ${++k} von ${list.length}: ${page.title || ''}`, (k - 1) / list.length);
         Canvas.showPage(page);
-        await this.waitImages($('#layer-boxes'));
+        await this.waitImages($('#world'));
         Canvas.layout();
         Draw.render();
         await nextFrame();
@@ -22160,7 +22583,12 @@ const ON = (() => {
       if (jcid === undefined) { const old = rev.objects.get(oid) || (this._lastJcid && this._lastJcid.get(oid)); jcid = old ? (old.jcid ?? old) : 0; }
       (this._lastJcid || (this._lastJcid = new Map())).set(oid, jcid >>> 0);
       const obj = { oid, jcid: jcid >>> 0, table, node: n };
-      if (n.fileRef !== undefined) { obj.fileRef = n.fileRef; obj.ext = n.ext; }
+      if (n.fileRef !== undefined) {
+        obj.fileRef = n.fileRef; obj.ext = n.ext;
+        // Dateiendung je FileDataStore-Eintrag merken (für „Nicht zugeordnete Inhalte“)
+        const m = /^<ifndf>(\{[0-9A-Fa-f-]+\})$/.exec(n.fileRef);
+        if (m) (this.fileExt || (this.fileExt = new Map())).set(m[1].toUpperCase(), n.ext || '');
+      }
       else if (n.ref && n.ref.stp !== -1 && n.ref.cb) obj.ref = n.ref;
       rev.objects.set(oid, obj);
     }
@@ -22249,13 +22677,19 @@ const ON = (() => {
       const ref = obj.fileRef;
       const m = /^<ifndf>(\{[0-9A-Fa-f-]+\})$/.exec(ref);
       if (!m) return { external: ref.replace(/^<file>/, ''), ext: obj.ext };
-      const fr = this.fileData.get(m[1].toUpperCase());
+      const guid = m[1].toUpperCase();
+      const data = this.fileDataBytes(guid);
+      return data ? { data, ext: obj.ext, guid } : null;
+    }
+    /* FileDataStoreObject: Header-GUID, cbLength (u64) an +16, Daten ab +36 */
+    fileDataBytes(guid) {
+      const fr = this.fileData.get(guid);
       if (!fr) return null;
       const r = new Reader(this.u8, fr.stp, fr.stp + fr.cb);
       if (r.guid() !== FDSO_HEADER) return null;
       const len = r.u64();
       r.skip(12);
-      return { data: r.bytes(len), ext: obj.ext };
+      return r.bytes(len);
     }
   }
 
@@ -22465,7 +22899,7 @@ const ON = (() => {
   };
 
   class Model {
-    constructor(store) { this.store = store; this.report = new Map(); }
+    constructor(store) { this.store = store; this.report = new Map(); this.used = new Set(); }
     note(what, n = 1) { this.report.set(what, (this.report.get(what) || 0) + n); }
     p(view, oid) { const o = oid && view.objects.get(oid); return o ? this.store.props(o) : null; }
     obj(view, oid) { return oid ? view.objects.get(oid) || null : null; }
@@ -22495,7 +22929,17 @@ const ON = (() => {
         });
       }
       const meta = this.p(view, view.roots.get(2));
-      return { name: (meta && this.s(meta, P.SectionDisplayName)) || name, pages };
+      // Absicherung (verlustfrei): FileDataStore-Einträge, die keinem Element zugeordnet wurden – z.B. das
+      // XPS-Druckdokument eines Ausdrucks oder das Symbolbild eines Anhangs – werden gesammelt zurückgegeben
+      const orphans = [];
+      for (const guid of st.fileData.keys()) {
+        if (this.used.has(guid)) continue;
+        const data = st.fileDataBytes(guid);
+        if (!data || !data.length) continue;
+        orphans.push({ guid, data, ext: (st.fileExt && st.fileExt.get(guid)) || '', mime: sniff(data) });
+      }
+      if (orphans.length) this.note('Nicht zugeordnete Inhalte (auf der Seite „Nicht zugeordnete Inhalte“ gesammelt)', orphans.length);
+      return { name: (meta && this.s(meta, P.SectionDisplayName)) || name, pages, orphans };
     }
 
     page(osid, metaProps) {
@@ -22546,13 +22990,14 @@ const ON = (() => {
             break;
           }
           case J.OutlineNode: { const out = this.outline(ctx, o); if (out) page.items.push(out); break; }
-          case J.ImageNode: { const im = this.image(ctx, o); if (im) page.items.push({ ...im, kind: 'image' }); break; }
+          case J.ImageNode: { const im = this.image(ctx, o); if (im) page.items.push({ ...im, kind: im.asFile ? 'file' : 'image' }); break; }
           case J.EmbeddedFileNode: { const fi = this.file(ctx, o); if (fi) page.items.push({ ...fi, kind: 'file' }); break; }
           case J.InkContainer: { const ink = this.ink(ctx, o); if (ink) page.items.push(ink); break; }
           default: page.items.push(this.unknown(ctx, o));
         }
       }
-      if (!page.title) page.title = this.s(meta, P.CachedTitleStringFromPage) || this.s(pp, P.CachedTitleString) || '';
+      // Titel: TitleNode (oben); sonst die zwischengespeicherten Titel aus PageMetaData bzw. der Seite
+      if (!page.title) page.title = (this.s(meta, P.CachedTitleStringFromPage) || this.s(meta, P.CachedTitleString) || this.s(pp, P.CachedTitleString) || '').replace(/\u0000/g, '').trim();
       return page;
     }
 
@@ -22606,7 +23051,7 @@ const ON = (() => {
         const c = this.obj(ctx.view, id);
         if (!c) continue;
         if (c.jcid === J.RichTextOENode) block.content.push(this.richText(ctx, c));
-        else if (c.jcid === J.ImageNode) { const im = this.image(ctx, c); if (im) block.content.push({ type: 'img', ...im }); }
+        else if (c.jcid === J.ImageNode) { const im = this.image(ctx, c); if (im) block.content.push({ type: im.asFile ? 'file' : 'img', ...im }); }
         else if (c.jcid === J.TableNode) block.content.push(this.table(ctx, c));
         else if (c.jcid === J.EmbeddedFileNode) { const fi = this.file(ctx, c); if (fi) block.content.push({ type: 'file', ...fi }); }
         else { this.note('Unbekannte Inhalte (' + (J_NAME[c.jcid] || ON_hex(c.jcid)) + ')'); }
@@ -22713,10 +23158,29 @@ const ON = (() => {
       if (para.runs.some(r => r.math)) this.note('Formeln (als Text übernommen)');
       return para;
     }
+    /* Bild. Die Bilddaten liegen im FileDataStore (Verweis <ifndf>{GUID}). Ein ImageNode kann zwei Quellen haben:
+     *  - WebPictureContainer14 (0x200034C8 → PictureContainer14 0x00080039): das sichtbare Bild – bei
+     *    „Als Ausdruck einfügen“ das PNG der jeweiligen Seite
+     *  - PictureContainer (0x20001C3F): bei Ausdrucken das ganze Druckdokument (.xps, für alle Seiten gleich,
+     *    im Browser nicht darstellbar), sonst das Bild selbst
+     * Regel: zuerst 0x200034C8, dann 0x20001C3F; massgebend ist, was die Magic Bytes sagen. Sind beide Bilder,
+     * gewinnt das grössere (verlustfrei). Ist keine Quelle ein Bild, wird das Element als Anhang geführt.
+     * Nicht verwendete Nicht-Bild-Quellen (z.B. das XPS) bleiben übrig und landen bei „Nicht zugeordnete Inhalte“. */
     image(ctx, o) {
       const props = this.store.props(o);
-      const fobj = this.obj(ctx.view, props.get(P.PictureContainer));
-      const fb = this.store.fileBytes(fobj);
+      const cands = [];
+      for (const pid of [P.WebPictureContainer14, P.PictureContainer]) {
+        const ref = props.get(pid);
+        if (!ref) continue;
+        const b = this.store.fileBytes(this.obj(ctx.view, ref));
+        if (b) cands.push(b);
+      }
+      const isImg = (b) => !!(b && b.data && /^image\//.test(sniff(b.data)));
+      const imgs = cands.filter(isImg);
+      // Browser-taugliche Formate (PNG/JPEG/GIF/BMP/WebP/SVG) vor WMF/EMF; bei Gleichstand die grössere Fassung
+      const rank = (b) => (/^image\/x-/.test(sniff(b.data)) ? 0 : 1);
+      let fb = imgs.length ? imgs.reduce((a, b) => (rank(b) > rank(a) || (rank(b) === rank(a) && b.data.length > a.data.length) ? b : a)) : null;
+      for (const b of imgs) if (b.guid) this.used.add(b.guid);   // alle Bild-Fassungen gelten als zugeordnet
       // Online-Video: Bild mit Kind-Objekt 0x00060058 (Adresse 0x1C0035F3), Titel 0x1C00360A
       let video = null, videoTitle = this.s(props, 0x1C00360A) || '';
       for (const cid of this.list(props, P.ContentChildNodes)) {
@@ -22732,10 +23196,25 @@ const ON = (() => {
       const useLayout = !video && lw > 0 && lh > 0;
       const w = ((useLayout ? lw : pw || lw) || 0) * HALF_INCH;
       const h = ((useLayout ? lh : ph || lh) || 0) * HALF_INCH;
-      if (!fb || !fb.data) { this.note('Bilder ohne Daten'); return { missing: true, w, h, video, videoTitle, ...this.pos(props) }; }
+      // Von OneNote erkannter Bildtext (OCR) – als Suchtext
+      const ocr = (this.s(props, P.RichEditTextUnicode) || '').replace(/\u0000/g, '').trim();
+      const name = this.s(props, P.ImageFilename);
+      if (!fb) {
+        const other = cands.find(b => b.data);
+        if (other) {
+          // keine Bildquelle, aber Daten (z.B. nur ein Druckdokument): als Anhang führen, nicht als Bild
+          this.note('Bild-Elemente ohne Bildquelle (als Anhang übernommen)');
+          if (other.guid) this.used.add(other.guid);
+          const ext = other.ext || '';
+          return { asFile: true, name: (name || 'Ausdruck').replace(/\.[^.]+$/, '') + ext, data: other.data, mime: sniff(other.data), ...this.pos(props) };
+        }
+        this.note('Bilder ohne Daten');
+        return { missing: true, w, h, video, videoTitle, ...this.pos(props) };
+      }
+      if (cands.length > imgs.length) this.note('Ausdrucke (Seitenbild statt Druckdokument übernommen)');
       const type = sniff(fb.data);
       if (type === 'image/x-wmf' || type === 'image/x-emf') this.note('Bilder im Format WMF/EMF (Browser können sie nicht anzeigen)');
-      return { data: fb.data, mime: type, ext: fb.ext || '', w, h, alt: this.s(props, P.ImageAltText), name: this.s(props, P.ImageFilename), video, videoTitle, ...this.pos(props), background: !!props.get(P.IsBackground) };
+      return { data: fb.data, mime: type, ext: fb.ext || '', w, h, alt: this.s(props, P.ImageAltText), name, video, videoTitle, ocr, ...this.pos(props), background: !!props.get(P.IsBackground) };
     }
     file(ctx, o) {
       const props = this.store.props(o);
@@ -22744,6 +23223,7 @@ const ON = (() => {
       const name = this.s(props, P.EmbeddedFileName) || 'Anhang' + ((fb && fb.ext) || '');
       this.note('Dateianhänge');
       if (!fb || !fb.data) { this.note('Anhänge ohne Daten (ausserhalb der Datei gespeichert)'); return { name, missing: true, ...this.pos(props) }; }
+      if (fb.guid) this.used.add(fb.guid);
       return { name, data: fb.data, mime: sniff(fb.data), ...this.pos(props) };
     }
     table(ctx, o) {
@@ -22836,6 +23316,136 @@ const OneImport = {
     if (files.length) await this.fromFiles(files);
   },
   isOneNoteFile(f) { return /\.(one|onepkg)$/i.test(f.name || ''); },
+  isArchive(f) { return /\.(zip|rar|7z|tar|tgz|tar\.gz)$/i.test(f.name || ''); },
+
+  /* ---------------------------------------------------------- Archiv (ZIP/RAR) mit OneNote-/KnowledgeTree-Sicherung
+   * Ein ZIP/RAR enthält meist die Ordnerstruktur einer OneNote-Sicherung (.one-Abschnitte, .onetoc2 für die
+   * Reihenfolge) oder KnowledgeTree-Dateien (.knowledgetree.json). Daraus werden neue Notizbücher mit derselben
+   * Ordnerstruktur erstellt. ZIP wird im Browser selbst entpackt; RAR/7z braucht eine Zusatz-Bibliothek. */
+  async importArchive() {
+    const files = await new Promise((res) => {
+      const inp = el('input', { type: 'file', accept: '.zip,.rar', multiple: true, style: { display: 'none' } });
+      inp.addEventListener('change', () => { res([...inp.files]); inp.remove(); });
+      document.body.append(inp);
+      inp.click();
+    });
+    if (files.length) await this.fromArchives(files);
+  },
+
+  async extractArchive(file) {
+    const u8 = new Uint8Array(await file.arrayBuffer());
+    // ZIP erkennt man an der Signatur „PK“ – das kann der Browser selbst (auch bei falscher Endung)
+    if (/\.zip$/i.test(file.name) || (u8[0] === 0x50 && u8[1] === 0x4B)) return await this.extractZip(u8);
+    // RAR (Signatur „Rar!“) – eigener WASM-Entpacker ohne Worker
+    if (/\.rar$/i.test(file.name) || (u8[0] === 0x52 && u8[1] === 0x61 && u8[2] === 0x72 && u8[3] === 0x21)) return await this.extractRar(u8);
+    // 7z/TAR: im Browser nicht direkt möglich
+    throw new Error('Dieses Archivformat kann der Browser nicht entpacken. Bitte als ZIP (oder RAR) speichern und erneut importieren.');
+  },
+  async extractZip(u8) {
+    const map = await unzip(u8);   // aus filepages.js
+    const out = [];
+    for (const [nm, fn] of map) { if (nm.endsWith('/')) continue; const data = await fn(); if (data) out.push({ name: nm, data }); }
+    return out;
+  },
+  // RAR-Entpacker (node-unrar-js, WASM) – läuft im Haupt-Thread OHNE Worker, darum kein
+  // „Cross-Origin-Worker“-Problem. Das Modul kommt per import() von jsDelivr, die WASM-Datei holen
+  // wir selbst per fetch() und geben die Bytes direkt hinein. Im Testkäfig (ohne Internet) nicht prüfbar.
+  async loadUnrar() {
+    if (this._unrar) return this._unrar;
+    const V = '2.0.2';
+    let mod;
+    for (const url of [`https://cdn.jsdelivr.net/npm/node-unrar-js@${V}/+esm`, `https://cdn.jsdelivr.net/npm/node-unrar-js@${V}/esm/index.js`]) {
+      try { mod = await import(/* @vite-ignore */ url); if (mod) break; } catch (e) { console.warn('[KnowledgeTree] node-unrar-js Modul:', url, e); }
+    }
+    const create = mod && (mod.createExtractorFromData || (mod.default && mod.default.createExtractorFromData));
+    if (!create) throw new Error('node-unrar-js nicht ladbar');
+    const wasmBinary = await (await fetch(`https://cdn.jsdelivr.net/npm/node-unrar-js@${V}/dist/js/unrar.wasm`)).arrayBuffer();
+    this._unrar = { create, wasmBinary };
+    return this._unrar;
+  },
+  async extractRar(u8) {
+    let lib;
+    try { lib = await this.loadUnrar(); }
+    catch (e) {
+      console.error('[KnowledgeTree] RAR-Entpacker konnte nicht geladen werden:', e);
+      throw new Error('Der RAR-Entpacker aus dem Internet konnte nicht geladen werden (Details in der Browser-Konsole, F12). Tipp: das Archiv als ZIP speichern und das ZIP importieren.');
+    }
+    let extracted;
+    try {
+      const extractor = await lib.create({ wasmBinary: lib.wasmBinary, data: u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) });
+      extracted = extractor.extract();
+    } catch (e) {
+      console.error('[KnowledgeTree] RAR konnte nicht entpackt werden:', e);
+      throw new Error('Die RAR-Datei konnte nicht entpackt werden (' + (e && e.message || e) + '). Ist sie evtl. passwortgeschützt? Tipp: als ZIP speichern und das ZIP importieren.');
+    }
+    const out = [];
+    for (const f of extracted.files) {
+      const h = f.fileHeader || {};
+      if (h.flags && h.flags.directory) continue;
+      if (f.extraction) out.push({ name: h.name, data: new Uint8Array(f.extraction) });
+    }
+    return out;
+  },
+
+  async fromArchives(files) {
+    files = files.filter(f => this.isArchive(f));
+    if (!files.length || Store.readOnly) return;
+    UI.toast('Archiv wird entpackt …', 60000);
+    await new Promise(r => setTimeout(r, 30));
+    const plan = { notebooks: [], sections: [], errors: [], report: new Map(), warnings: 0 };
+    const ktBackups = [];
+    let skipped = 0;
+    for (const f of files) {
+      let entries;
+      try { entries = await this.extractArchive(f); }
+      catch (e) { plan.errors.push(`${f.name}: ${e.message}`); continue; }
+      // junk aussortieren (macOS-Beiwerk, Papierkorb)
+      entries = entries.filter(e => !/(^|\/)(__MACOSX\/|\.DS_Store$|Thumbs\.db$|\._)/i.test(e.name));
+      const base = f.name.replace(/\.(zip|rar|7z|tar|tgz|tar\.gz)$/i, '');
+      const oneEntries = [];
+      for (const e of entries) {
+        const nm = e.name;
+        if (/\.onepkg$/i.test(nm)) {
+          try { plan.notebooks.push(this.readPackage(e.data, nm.split('/').pop().replace(/\.onepkg$/i, ''), plan)); }
+          catch (err) { plan.errors.push(`${nm}: ${err.message}`); }
+        } else if (/\.(one|onetoc2)$/i.test(nm)) {
+          oneEntries.push(e);   // zusammen als ein Notizbuch (Ordnerstruktur des Backups)
+        } else if (/\.(knowledgetree\.json|json)$/i.test(nm)) {
+          try { const data = JSON.parse(new TextDecoder().decode(e.data)); if (data && data.typ === 'KnowledgeTree-Backup' && data.seiten) ktBackups.push({ name: nm.split('/').pop(), data }); else skipped++; }
+          catch (err) { skipped++; }
+        } else { skipped++; }
+      }
+      if (oneEntries.length) {
+        try { const nb = this.notebookFromEntries(oneEntries, base, plan); if (this.countSections(nb.tree)) plan.notebooks.push(nb); }
+        catch (err) { plan.errors.push(`${f.name}: ${err.message}`); }
+      }
+    }
+    UI.toast('', 1);
+    const nSec = plan.notebooks.reduce((a, nb) => a + this.countSections(nb.tree), 0);
+    if (!nSec && !ktBackups.length) {
+      UI.info('Archiv importieren', `<p>Im Archiv wurde keine OneNote- oder KnowledgeTree-Sicherung gefunden (gesucht wird nach <b>.one</b>, <b>.onepkg</b> und <b>.knowledgetree.json</b>).</p>${skipped ? `<p style="color:var(--ink-3)">${skipped} andere Datei(en) übersprungen.</p>` : ''}${plan.errors.length ? '<ul>' + plan.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('') + '</ul>' : ''}`);
+      return;
+    }
+    plan._ktBackups = ktBackups;
+    plan._skipped = skipped;
+    plan._archive = true;
+    await this.apply(plan, { container: '__neu' });
+  },
+
+  /* KnowledgeTree-Backup (aus dem Archiv) als neues Notizbuch einlesen – gleiche Logik wie „Backup laden → hinzufügen“ */
+  applyKtBackup(data, stats) {
+    const pages = {};
+    for (const [id, raw] of Object.entries(data.seiten || {})) { const p = normPage(raw); if (p) { p.id = id; pages[id] = p; } }
+    let groups = data.gruppen || [];
+    const map = {};
+    for (const id of Object.keys(pages)) map[id] = uid('p');
+    const reid = (list) => list.map(g => { const n = { ...g, id: uid('g'), pages: (g.pages || []).filter(p => map[p]).map(p => map[p]), groups: reid(g.groups || []) }; delete n.closed; return n; });
+    groups = reid(groups);
+    for (const [oldId, p] of Object.entries(pages)) { p.id = map[oldId]; Store.pages[p.id] = p; Save.dirty.add(p.id); stats.pages++; if (!stats._first) stats._first = p.id; }
+    if (!groups.some(g => g.kind)) groups = [{ id: uid('g'), name: data.name || 'Wiederhergestellt', color: '', kind: 'notebook', groups, pages: [] }];
+    Store.groups.push(...groups);
+    stats.notebooks += groups.filter(g => g.kind === 'notebook').length || 1;
+  },
 
   async fromFiles(files) {
     files = files.filter(f => this.isOneNoteFile(f));
@@ -22877,10 +23487,14 @@ const OneImport = {
     for (const [k, v] of model.report) plan.report.set(k, (plan.report.get(k) || 0) + v);
     plan.warnings += store.warnings.length;
     if (store.warnings.length) console.warn('OneNote', name, store.warnings);
-    return { name: sec.name || name, pages: sec.pages, color: null };
+    return { name: sec.name || name, pages: sec.pages, orphans: sec.orphans || [], color: null };
   },
   readPackage(u8, name, plan) {
-    const entries = ON.readCab(u8);
+    return this.notebookFromEntries(ON.readCab(u8), name, plan);
+  },
+  /* aus einer Liste von Dateien [{name, data}] (OneNote-Paket-CAB oder entpacktes ZIP/RAR eines
+   * OneNote-Backups) einen Notizbuch-Baum bauen: Ordner = Abschnittsgruppen, .one = Abschnitte. */
+  notebookFromEntries(entries, name, plan) {
     const root = { name, kind: 'notebook', children: [], order: [] };
     const folders = new Map([['', root]]);
     const folder = (path) => {
@@ -22986,6 +23600,17 @@ const OneImport = {
           if (!firstPage) firstPage = p.id;
         } catch (e) { console.error(e); rep.set('Seiten mit Fehlern beim Umwandeln', (rep.get('Seiten mit Fehlern beim Umwandeln') || 0) + 1); }
       }
+      // Absicherung: was im FileDataStore keinem Element zugeordnet war, auf einer eigenen Seite sammeln
+      if (s.orphans && s.orphans.length) {
+        try {
+          const p = await this.orphanPage(s.orphans, stats);
+          Store.pages[p.id] = p;
+          node.pages.push(p.id);
+          Hist.touchPage(p.id);
+          stats.pages++;
+          stats.orphans = (stats.orphans || 0) + s.orphans.length;
+        } catch (e) { console.error(e); }
+      }
       Tree.normLevels(node);
       stats.sections++;
     };
@@ -23015,8 +23640,16 @@ const OneImport = {
       }
       for (const s of plan.sections) await makeSection(s, parent);
     }
+    // KnowledgeTree-Sicherungen aus einem Archiv (als neue Notizbücher)
+    if (plan._ktBackups && plan._ktBackups.length) {
+      stats._first = firstPage;
+      for (const b of plan._ktBackups) { try { this.applyKtBackup(b.data, stats); } catch (e) { plan.errors.push(`${b.name}: ${e.message}`); } }
+      firstPage = stats._first;
+      Store.groups = Tree.norm(Store.groups);
+      for (const s of Tree.sections()) Tree.normLevels(s);
+    }
     Hist.touchTree();
-    Hist.commit('OneNote importiert');
+    Hist.commit(plan._archive ? 'Archiv importiert' : 'OneNote importiert');
     await Save.flushAll();
     UI.toast('', 1);
     if (firstPage) App.openPage(firstPage);
@@ -23026,13 +23659,16 @@ const OneImport = {
 
   showReport(stats, plan) {
     const rows = [];
-    rows.push(`<p><b>Importiert:</b> ${stats.notebooks ? stats.notebooks + ' Notizbuch' + (stats.notebooks === 1 ? '' : 'bücher') + ', ' : ''}${stats.sections} Abschnitt${stats.sections === 1 ? '' : 'e'}, ${stats.pages} Seite${stats.pages === 1 ? '' : 'n'}, ${stats.images} Bild${stats.images === 1 ? '' : 'er'}${stats.videos ? `, ${stats.videos} Video${stats.videos === 1 ? '' : 's'}` : ''}, ${stats.files} Anhang/Anhänge.</p>`);
+    rows.push(`<p><b>Importiert:</b> ${stats.notebooks ? stats.notebooks + ' ' + (stats.notebooks === 1 ? 'Notizbuch' : 'Notizbücher') + ', ' : ''}${stats.sections} Abschnitt${stats.sections === 1 ? '' : 'e'}, ${stats.pages} Seite${stats.pages === 1 ? '' : 'n'}, ${stats.images} Bild${stats.images === 1 ? '' : 'er'}${stats.videos ? `, ${stats.videos} Video${stats.videos === 1 ? '' : 's'}` : ''}, ${stats.files} Anhang/Anhänge.</p>`);
+    if (stats.orphans) rows.push(`<p style="color:var(--ink-3)">${stats.orphans} Datei(en) aus dem Speicher der OneNote-Datei gehörten zu keinem sichtbaren Element (z.B. XPS-Druckdokumente von Ausdrucken, Symbolbilder von Anhängen) – sie liegen auf der Seite <b>„Nicht zugeordnete Inhalte“</b>, damit nichts verloren geht.</p>`);
+    if (stats.missingImages) rows.push(`<p style="color:var(--ink-3)">${stats.missingImages} Bild${stats.missingImages === 1 ? '' : 'er'} sind in OneNote zu sehen, aber ihre Bilddaten stecken nicht in dieser Datei (z.&nbsp;B. in OneDrive ausgelagert) – an ihrer Stelle steht ein Hinweis. Lade das Original (PDF/Word) über <b>Einfügen → Datei</b> und klappe es mit Rechtsklick als Seiten auf.</p>`);
     const rep = [...plan.report].filter(([, v]) => v);
     if (rep.length) rows.push('<p><b>Angepasst oder ersetzt:</b></p><ul>' + rep.map(([k, v]) => `<li>${escapeHtml(k)}: ${v}</li>`).join('') + '</ul>');
     if (plan.errors.length) rows.push('<p style="color:var(--danger)"><b>Nicht lesbar:</b></p><ul>' + plan.errors.map(e => `<li>${escapeHtml(e)}</li>`).join('') + '</ul>');
+    if (plan._skipped) rows.push(`<p style="color:var(--ink-3)">${plan._skipped} Datei(en) im Archiv waren weder OneNote noch KnowledgeTree und wurden übersprungen.</p>`);
     if (plan.warnings) rows.push(`<p style="color:var(--ink-3)">${plan.warnings} technische Hinweise beim Lesen (Details in der Browser-Konsole).</p>`);
     rows.push('<p style="color:var(--ink-3)">Mit Strg+Z lässt sich der ganze Import rückgängig machen.</p>');
-    UI.info('OneNote-Import abgeschlossen', rows.join(''), { wide: true });
+    UI.info(plan._archive ? 'Archiv-Import abgeschlossen' : 'OneNote-Import abgeschlossen', rows.join(''), { wide: true });
   },
 
   /* ---------------------------------------------------------- Seite umwandeln */
@@ -23040,6 +23676,34 @@ const OneImport = {
     const blob = new Blob([data], { type: type || 'application/octet-stream' });
     if (isImage && /^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(type)) return Backend.saveImage(blob);
     return Backend.saveFile ? Backend.saveFile(blob, ext) : Backend.saveImage(blob);
+  },
+  /* Seite „Nicht zugeordnete Inhalte“: Bilder als Bild, alles andere (z.B. XPS-Druckdokumente) als 📎-Anhang */
+  async orphanPage(orphans, stats) {
+    const p = newPage('Nicht zugeordnete Inhalte');
+    p.bg = 'keiner';
+    const note = '<div><b>Nicht zugeordnete Inhalte</b></div><div>Diese Dateien lagen in der OneNote-Datei, gehörten aber zu keinem sichtbaren Element – z.&nbsp;B. das XPS-Druckdokument eines Ausdrucks (die Seitenbilder sind auf den Seiten) oder das Symbolbild eines Anhangs. Sie sind hier gesammelt, damit nichts verloren geht.</div>';
+    p.boxes.push({ id: uid('b'), x: 20, y: 0, w: 520, html: note, images: [], z: 1, style: {}, locked: false, pkg: null });
+    let x = 20, y = 110, rowH = 0, z = 2;
+    for (const o of orphans) {
+      const isImg = /^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(o.mime || '');
+      const ext = (o.ext || '').replace(/^\./, '') || (isImg ? (o.mime.split('/')[1] || 'png').replace('jpeg', 'jpg').replace('svg+xml', 'svg') : 'bin');
+      const name = await this.saveBlob(o.data, o.mime, ext, isImg);
+      if (isImg) {
+        stats.images++;
+        let w = 160, h = 120;
+        try { const d = await loadImageSize(await Backend.imgURL(name)); const k = Math.min(1, 320 / (d.w || 1)); w = Math.max(16, Math.round(d.w * k)); h = Math.max(16, Math.round(d.h * k)); } catch (e) { /* */ }
+        if (x + w > 760) { x = 20; y += rowH + 24; rowH = 0; }
+        p.boxes.push({ id: uid('b'), x, y, w: w + 22, html: '', images: [{ id: uid('i'), src: name, x: 0, y: 0, w, h }], z: z++, style: {}, locked: false, pkg: null });
+        x += w + 40; rowH = Math.max(rowH, h + 30);
+      } else {
+        stats.files++;
+        const label = (/xps/i.test(ext) ? 'Druckdokument' : 'Datei') + ' ' + o.guid.slice(1, 9).toLowerCase() + '.' + ext;
+        if (x + 300 > 760) { x = 20; y += rowH + 24; rowH = 0; }
+        p.boxes.push({ id: uid('b'), x, y, w: 280, html: this.fileChip(name, label), images: [], z: z++, style: {}, locked: false, pkg: null });
+        x += 320; rowH = Math.max(rowH, 50);
+      }
+    }
+    return p;
   },
   async convertPage(pg, rep, stats) {
     const p = newPage(pg.title || 'Unbenannte Seite');
@@ -23088,14 +23752,23 @@ const OneImport = {
         const w = Math.round(Math.max(it.w || 0, ctx.maxImg, 40) || 480) + 2 * pad;
         p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w, html, images: [], z: z++, style: { ...onStyle }, locked: false, pkg: null });
       } else if (it.kind === 'image') {
-        if (it.missing) continue;
+        if (it.missing) {
+          // Bildverweis nicht auflösbar (Daten nicht in dieser .one-Datei, z.B. in OneDrive ausgelagert).
+          // Ausdrucke sind das NICHT mehr: deren Seitenbild liest image() seit 1.13 aus 0x200034C8.
+          // (OneDrive/SharePoint). Statt es wegzulassen: sichtbarer Hinweis mit dem Weg über „Datei anhängen → aufklappen“.
+          stats.missingImages = (stats.missingImages || 0) + 1;
+          const mw = Math.round(Math.max(it.w || 0, 220));
+          p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: mw + 2 * pad, html: '<div class="kt-missing">🧩 Bild in OneNote vorhanden, aber nicht in dieser Datei gespeichert (die Daten liegen ausserhalb, z.&nbsp;B. in OneDrive). Tipp: das Original (PDF/Word) über <b>Einfügen → Datei</b> anhängen und mit Rechtsklick <b>„Seiten als Bilder aufklappen“</b>.</div>', images: [], z: z++, style: { ...onStyle }, locked: false, pkg: null });
+          continue;
+        }
         const name = await this.saveBlob(it.data, it.mime, (it.ext || '').replace('.', ''), true);
         stats.images++;
         const w = Math.round(it.w || 200), h = Math.round(it.h || 150);
         if (/^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(it.mime)) {
           const img = { id: uid('i'), src: name, x: 0, y: 0, w, h };
+          if (it.ocr) img.ocr = it.ocr;   // von OneNote erkannter Bildtext (Suche)
           if (it.video) { img.video = it.video; if (it.videoTitle) img.title = it.videoTitle; stats.videos = (stats.videos || 0) + 1; }
-          p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: w + 2 * pad, html: '', images: [img], z: it.background ? 0 : z++, style: { ...onStyle }, locked: !!it.background, pkg: null });
+          p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: w + 2 * pad, html: '', images: [img], z: it.background ? 1 : z++, style: { ...onStyle }, locked: false, pkg: null, ...(it.background ? { bg: true } : {}) });   // OneNote „Bild als Hintergrund“ → Hintergrund (1.10)
         } else {
           p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: 260, html: this.fileChip(name, (it.name || 'Bild') + (it.ext && !/\.\w+$/.test(it.name || '') ? it.ext : '')), images: [], z: z++, style: { ...onStyle }, locked: false, pkg: null });
         }
@@ -23234,7 +23907,7 @@ const OneImport = {
   async contentHtml(c, outline, rep, stats, ctx) {
     if (c.type === 'p') return this.paraHtml(c);
     if (c.type === 'img') {
-      if (c.missing || !c.data) return '';
+      if (c.missing || !c.data) { stats.missingImages = (stats.missingImages || 0) + 1; return '<div class="kt-missing">🧩 Bild in OneNote vorhanden, aber nicht in dieser Datei gespeichert. Tipp: das Original über <b>Einfügen → Datei</b> anhängen und als Seiten aufklappen.</div>'; }
       if (!/^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(c.mime || '')) {
         const fname = (c.name || 'Bild') + (c.ext && !/\.\w+$/.test(c.name || '') ? c.ext : '');
         const fn = await this.saveBlob(c.data, c.mime, (c.ext || '.bin').replace('.', ''), false);
@@ -23276,7 +23949,7 @@ const OneImport = {
     const w = Math.round(c.w || 0), h = Math.round(c.h || 0);
     ctx.maxImg = Math.max(ctx.maxImg, w);
     const css = w ? `width:${w}px${h ? `;height:${h}px` : ''}` : '';
-    const img = `<img data-kt-src="${escapeHtml(name)}" alt="${escapeHtml(c.alt || '')}"${css ? ` style="${css}"` : ''}>`;
+    const img = `<img data-kt-src="${escapeHtml(name)}" alt="${escapeHtml(c.alt || '')}"${c.ocr ? ` data-ocr="${escapeHtml(c.ocr)}"` : ''}${css ? ` style="${css}"` : ''}>`;
     if (c.video) { stats.videos = (stats.videos || 0) + 1; return `<div>${Video.wrapHtml(img, c.video, c.videoTitle)}</div>`; }
     return `<div>${img}</div>`;
   },
@@ -23700,6 +24373,8 @@ const OneWrite = (() => {
     MathFormatting: 0x08003401, ParagraphStyle: 0x2000342C, ParagraphSpaceBefore: 0x1400342E, ParagraphSpaceAfter: 0x1400342F,
     ParagraphLineSpacingExact: 0x14003430, ParagraphStyleId: 0x1C00345A, ParagraphAlignment: 0x0C003477, TextExtendedAscii: 0x1C003498,
     PictureWidth: 0x140034CD, PictureHeight: 0x140034CE,
+    // Dateianhang (EmbeddedFileNode)
+    EmbeddedFileContainer: 0x20001D9B, EmbeddedFileName: 0x1C001D9C, SourceFilepath: 0x1C001D9D,
     // Tabellen
     RowCount: 0x14001D57, ColumnCount: 0x14001D58, TableBordersVisible: 0x08001D5E, TableColumnWidths: 0x1C001D66, TableColumnsLocked: 0x1C001D7D, CellShadingColor: 0x14001E26,
     // ohne Namen in [MS-ONE], Werte wie in echten Dateien
@@ -23719,6 +24394,7 @@ const OneWrite = (() => {
     PageMetaData: 0x00020030, SectionMetaData: 0x00020031, InkData: 0x0002003B, RevisionMetaData: 0x00020044, InkStroke: 0x00020047,
     Author: 0x00120001, InkStrokeProperties: 0x00120048, ParagraphStyleObject: 0x0012004D, PictureContainer14: 0x00080039, TocEntry: 0x00020001,
     TableNode: 0x00060022, TableRowNode: 0x00060023, TableCellNode: 0x00060024,
+    EmbeddedFileNode: 0x00060035, EmbeddedFileContainer: 0x00080036,
   };
   const HI = 48;                // px je halber Zoll
   const HIMETRIC = 2540 / 96;   // HIMETRIC je px
@@ -23836,6 +24512,8 @@ const OneWrite = (() => {
       props.push([P.LayoutMaxWidth, f32(im.w / HI)], [P.LayoutMaxHeight, f32(im.h / HI)], [P.PictureWidth, f32(im.w / HI)], [P.PictureHeight, f32(im.h / HI)]);
       if (im.name) props.push([P.ImageFilename, utf16z(im.name)]);
       if (im.alt) props.push([P.ImageAltText, utf16z(im.alt)]);
+      if (im.background) props.push([P.IsBackground, true]);   // KnowledgeTree-Hintergrund = OneNote „Bild als Hintergrund“
+      if (im.ocr) props.push([P.RichEditTextUnicode, utf16z(im.ocr)]);   // erkannter Bildtext (OCR) zurück an OneNote
       if (im.video) {
         // wie OneNote: Bild mit Kind-Objekt 0x00060058 (Adresse), Titel am Bild
         if (im.title) props.push([0x1C00360A, utf16z(im.title)]);
@@ -23843,6 +24521,18 @@ const OneWrite = (() => {
         props.push([P.ContentChildNodes, [v]]);
       }
       return sp.add(J.ImageNode, props);
+    };
+    // Dateianhang (verlustfrei, seit 1.13): EmbeddedFileNode → EmbeddedFileContainer mit den Bytes im FileDataStore
+    const fileNode = (f, pos) => {
+      const props = [[P.LastModifiedTime, T32]];
+      if (pos) props.push([P.OffsetFromParentHoriz, f32((f.x || 0) / HI)], [P.OffsetFromParentVert, f32((f.y || 0) / HI)]);
+      if (f.fileGuid) {
+        const ec = sp.add(J.EmbeddedFileContainer);
+        ec.file = { ref: `<ifndf>${f.fileGuid}`, ext: f.ext || '' };
+        props.push([P.EmbeddedFileContainer, ec]);
+      }
+      props.push([P.EmbeddedFileName, utf16z(f.name || 'Anhang')], [P.SourceFilepath, utf16z(f.name || 'Anhang')]);
+      return sp.add(J.EmbeddedFileNode, props);
     };
     const oe = (content, kids, extra = []) => {
       const props = [[P.LastModifiedTime, T32], [P.AuthorMostRecent, author], [P.AuthorOriginal, author], [P.CreationTimeStamp, time32(created)], [P.OutlineElementChildLevel, 1]];
@@ -23909,7 +24599,7 @@ const OneWrite = (() => {
           return { out, i };
         };
         const tree = build(it.paras.map(p => ({ ...p, depth: Math.max(0, p.depth | 0) })), 0, 0).out;
-        const mk = (nodes) => nodes.map(n => oe(n.p.image ? imageNode(n.p.image, false) : n.p.table ? tableNode(n.p.table) : richText(n.p), mk(n.kids)));
+        const mk = (nodes) => nodes.map(n => oe(n.p.image ? imageNode(n.p.image, false) : n.p.file ? fileNode(n.p.file, false) : n.p.table ? tableNode(n.p.table) : richText(n.p), mk(n.kids)));
         const kids = mk(tree);
         if (!kids.length) continue;
         elems.push(sp.add(J.OutlineNode, [
@@ -23920,6 +24610,8 @@ const OneWrite = (() => {
         ]));
       } else if (it.kind === 'image') {
         elems.push(imageNode(it, true));
+      } else if (it.kind === 'file') {
+        elems.push(fileNode(it, true));
       } else if (it.kind === 'ink' && it.strokes.length) {
         const strokes = [];
         for (const s of it.strokes) {
@@ -23963,7 +24655,7 @@ const OneWrite = (() => {
     const pageSpaces = [];
     for (const pg of pages) {
       for (const it of pg.items) {
-        const imgs = it.kind === 'image' ? [it] : it.kind === 'outline' ? it.paras.filter(p => p.image).map(p => p.image) : [];
+        const imgs = it.kind === 'image' || it.kind === 'file' ? [it] : it.kind === 'outline' ? it.paras.filter(p => p.image || p.file).map(p => p.image || p.file) : [];
         if (it.kind === 'outline') for (const pp of it.paras) if (pp.table) for (const row of pp.table.rows) for (const cell of row) for (const cp of cell.paras || []) if (cp.image) imgs.push(cp.image);
         for (const im of imgs) if (im.data && !im.fileGuid) { im.fileGuid = newGuid(); files.push({ guid: im.fileGuid, data: im.data }); }
       }
@@ -24043,6 +24735,10 @@ const OneWrite = (() => {
   const ptOf = (px) => Math.round(parseFloat(px) * 0.75 * 2) / 2;
 
   /* Bilddaten holen; Formate, die OneNote nicht kennt, als PNG */
+  /* Bytes eines gespeicherten Anhangs (unverändert) */
+  async function fileBytes(name) {
+    try { const r = await fetch(await Backend.imgURL(name)); if (!r.ok) return null; return new Uint8Array(await r.arrayBuffer()); } catch (e) { return null; }
+  }
   async function imageBytes(name) {
     let blob;
     try { const r = await fetch(await Backend.imgURL(name)); if (!r.ok) return null; blob = await r.blob(); } catch (e) { return null; }
@@ -24211,7 +24907,18 @@ const OneWrite = (() => {
         if (n.nodeType !== 1) continue;
         const tag = n.tagName;
         if (n.classList.contains('kt-math')) { ensure(node, depth); cur.runs.push({ text: n.dataset.tex || n.textContent, font: 'Cambria Math' }); continue; }
-        if (n.classList.contains('kt-file')) { ensure(node, depth); cur.runs.push({ text: '📎 ' + (n.dataset.name || n.textContent.replace(/^📎\s*/, '')) }); continue; }
+        if (n.classList.contains('kt-file')) {
+          const fname = n.dataset.name || n.textContent.replace(/^📎\s*/, '').trim() || 'Anhang';
+          const fd = n.dataset.ktFile ? await fileBytes(n.dataset.ktFile) : null;
+          if (fd) {
+            // verlustfrei: echter OneNote-Dateianhang (EmbeddedFileNode) als eigener Absatz
+            const d0 = cur ? cur.depth : depth;
+            if (cur && !cur.runs.length) cur = null; else flush();
+            const m = /\.[A-Za-z0-9]{1,8}$/.exec(fname);
+            paras.push({ depth: d0, file: { name: fname, data: fd, ext: m ? m[0] : '' } });
+          } else { ensure(node, depth); cur.runs.push({ text: '📎 ' + fname }); }
+          continue;
+        }
         if (tag === 'BR') {
           if (cur && n.nextSibling && !(n.nextSibling.nodeType === 1 && /^(DIV|P|UL|OL|TABLE|H\d)$/.test(n.nextSibling.tagName))) cur.runs.push({ text: '\u000b' });
           continue;
@@ -24224,7 +24931,7 @@ const OneWrite = (() => {
             if (cur && !cur.runs.length) cur = null; else flush();
             const r = n.getBoundingClientRect(), z = Canvas.view.z || 1;
             const vw = n.closest('.kt-video');
-            paras.push({ depth: d0, image: { ...im, w: Math.max(4, r.width / z), h: Math.max(4, r.height / z), alt: n.alt || '', ...(vw ? { video: vw.dataset.video, title: vw.dataset.title || '' } : {}) } });
+            paras.push({ depth: d0, image: { ...im, w: Math.max(4, r.width / z), h: Math.max(4, r.height / z), alt: n.alt || '', ...(n.dataset.ocr ? { ocr: n.dataset.ocr } : {}), ...(vw ? { video: vw.dataset.video, title: vw.dataset.title || '' } : {}) } });
           }
           continue;
         }
@@ -24259,7 +24966,8 @@ const OneWrite = (() => {
             for (let i = 0; i < ncol; i++) {
               const td = tr.cells[i];
               if (!td) { row.push({ paras: [] }); continue; }
-              const ps = (await htmlParas(td)).filter(p => !p.image && !p.table);
+              // Zellen tragen nur Text: ein Anhang in einer Zelle bleibt als Hinweis „📎 Name“ stehen
+              const ps = (await htmlParas(td)).map(p => p.file ? { depth: p.depth, style: 'p', runs: [{ text: '📎 ' + p.file.name }] } : p).filter(p => !p.image && !p.table);
               const bg = solidHex(getComputedStyle(td).backgroundColor);
               row.push({ paras: ps, shade: bg && bg !== '#ffffff' ? bg : null });
             }
@@ -24281,7 +24989,7 @@ const OneWrite = (() => {
     flush();
     // leere Absätze am Ende weglassen, Leerzeichen-Läufe zusammenfassen
     for (const p of paras) if (p.runs) { p.runs = p.runs.filter(r => r.text !== '').map(r => { delete r.prefix; return r; }); delete p.block; }
-    while (paras.length && !paras[paras.length - 1].image && !paras[paras.length - 1].table && !(paras[paras.length - 1].runs || []).some(r => r.text.trim())) paras.pop();
+    while (paras.length && !paras[paras.length - 1].image && !paras[paras.length - 1].file && !paras[paras.length - 1].table && !(paras[paras.length - 1].runs || []).some(r => r.text.trim())) paras.pop();
     return paras;
   }
 
@@ -24346,7 +25054,7 @@ const OneWrite = (() => {
       items.push({ kind: 'outline', x: r.x, y: r.y, w: Math.max(30, r.w + 8), paras: [{ depth: 0, style: 'p', styleFmt: { size: 10 }, runs: [{ text: t.textContent }] }] });
     }
     // Textfelder
-    for (const b of [...page.boxes].sort((a, c) => a.z - c.z)) {
+    for (const b of [...page.boxes].sort((a, c) => (!!c.bg - !!a.bg) || a.z - c.z)) {   // Hintergrund zuerst
       const e = Canvas.els.get(b.id);
       if (!e) continue;
       if (b.sheet) { const it = await sheetItem(b, e, W); if (it) items.push(it); continue; }
@@ -24361,7 +25069,7 @@ const OneWrite = (() => {
         const data = im && await imageBytes(im.src);
         if (!data) continue;
         const fr = W(f.getBoundingClientRect());
-        items.push({ kind: 'image', x: fr.x, y: fr.y, w: fr.w, h: fr.h, ...data, ...(im.video ? { video: im.video, title: im.title || '' } : {}) });
+        items.push({ kind: 'image', x: fr.x, y: fr.y, w: fr.w, h: fr.h, ...data, ...(im.video ? { video: im.video, title: im.title || '' } : {}), ...(im.ocr ? { ocr: im.ocr } : {}), ...(b.bg && Canvas.isPictureBox(b) ? { background: true } : {}) });
       }
     }
     // Zeichnungen
@@ -24591,6 +25299,7 @@ const Ribbon = {
         B.col(B.small('movePage', 'Verschieben nach …', 'folder', 'Seite (mit Unterseiten) in einen anderen Abschnitt verschieben'), B.small('versions', 'Seitenversionen', 'versions', 'Ältere Stände dieser Seite ansehen und wiederherstellen')));
       G('Exportieren & Importieren', B.big('exportDlg', 'Exportieren', 'export', 'Seiten, Abschnitte oder Notizbücher auswählen und als PDF, Webseite (HTML), KnowledgeTree-Datei oder OneNote-Datei speichern'),
         B.big('oneImport', 'OneNote importieren', 'oneNote', 'OneNote-Abschnitte (.one) oder ganze Notizbücher (.onepkg) übernehmen – auch per Ziehen auf das Fenster'),
+        B.big('importArchive', 'Archiv importieren', 'archive', 'ZIP/RAR einer OneNote- oder KnowledgeTree-Sicherung: erstellt neue Notizbücher mit der Ordnerstruktur. ZIP entpackt der Browser selbst, RAR über einen WASM-Entpacker, der bei Bedarf aus dem Internet geladen wird. Auch per Ziehen auf das Fenster.'),
         Backend.kind === 'browser' ? null : B.big('restore', 'KT-Datei laden', 'folder', 'Eine exportierte KnowledgeTree-Datei (.json) als zusätzliches Notizbuch einlesen'));
       G('Notizbuch', B.col(
         B.small('closeNotebook', 'Schliessen', 'bookClosed', 'Notizbuch ausblenden (bleibt gespeichert)'),
@@ -24663,7 +25372,8 @@ const Ribbon = {
 
     if (id === 'einfuegen') {
       G('Seiten', B.big('newPage', 'Neue Seite', 'pagePlus', 'Neue Seite (Alt+N)'), B.col(B.small('newSubpage', 'Unterseite', 'subpage', 'Strg+Alt+N'), B.small('newSection', 'Abschnitt', 'tabPlus'), B.small('quickNote', 'Schnellnotiz', 'bolt', 'Alt+Umsch+N')));
-      G('Elemente', B.big('newBox', 'Textfeld', 'textbox'), B.big('insertImage', 'Bild', 'image', 'Bild in das ausgewählte Textfeld einfügen (oder neues Feld). Bilder kannst du auch hineinziehen oder mit Strg+V einfügen.'));
+      G('Elemente', B.big('newBox', 'Textfeld', 'textbox'), B.big('insertImage', 'Bild', 'image', 'Bild in das ausgewählte Textfeld einfügen (oder neues Feld). Bilder kannst du auch hineinziehen oder mit Strg+V einfügen.'),
+        B.big('insertFile', 'Datei', 'file', 'Datei anhängen (PDF, Word, PowerPoint …). Rechtsklick auf den Anhang → „Seiten als Bilder aufklappen“ (wie Dateiausdruck in OneNote). Auch per Ziehen.'));
       G('Rechnen', B.dropBtn('big', icon('table', 28), 'Tabelle', 'Tabelle wie in Excel: Zahlen, Formeln (=SUMME(A1:A5) …), Formate, Ausfüllen, Sortieren', (a) => this.tableMenu(a)),
         B.dropBtn('big', icon('chart', 28), 'Diagramm', 'Diagramm aus Tabellendaten (Säulen, Linie, Punkte, Kreis …) – mit markierten Zellen oder Beispieldaten', (a) => this.chartMenu(a, 'insertChart')),
         B.big('calculator', 'Rechner', 'calc', 'Taschenrechner (TI-30X Plus oder Standard) mit Rechenverlauf – Alt+R'), B.big('fotomath', 'Fotomath', 'fotomath', 'Handgeschriebene Rechnung (Stift oder Bild) einrahmen: erkennen, darstellen und ausrechnen (auch Gleichungen mit x) – Alt+M'));
@@ -25331,6 +26041,7 @@ const App = {
       ['Alt + Klick', 'Objekte an dieser Stelle der Reihe nach auswählen (z.B. Schrift vor einem Bild)'],
       ['Tab / Umschalt + Tab', 'nächstes / voriges Objekt der Seite auswählen'],
       ['Umschalt/Strg + Klick', 'Objekt zur Auswahl hinzufügen oder entfernen'],
+      ['Rechtsklick → „Bild als Hintergrund festlegen“', 'Bild (auch Textfeld, Diagramm, Zeichnung) ganz nach hinten: Auswahlrahmen, Lasso und Strg+A überspringen es, ziehen darauf = Auswahlrahmen · einzeln anklicken = auswählen · Doppelklick = Textfeld darauf · nochmals = wieder normal'],
       ['Pfeiltasten (+Umschalt)', 'Auswahl oder ausgewähltes Bild um 1 (10) px verschieben'],
       ['Strg + K', 'Link einfügen (Klick öffnet ihn)'],
       ['Tab / Umschalt + Tab', 'Einzug in Listen'],
