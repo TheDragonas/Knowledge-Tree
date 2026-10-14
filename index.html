@@ -387,7 +387,7 @@ body[data-theme="dunkel"] #version-bar { background: #3d3410; border-color: #5c4
 .box.locked .box-bar { cursor: default; }
 .box-body { position: relative; padding: 0 10px 8px; }
 .box-body::after { content: ""; display: block; clear: both; }
-.box-text { outline: none; min-height: 1.45em; font: 11pt/1.45 var(--font-note); color: var(--ink); cursor: text; user-select: text; -webkit-user-select: text; overflow-wrap: anywhere; }
+.box-text { outline: none; min-height: 1.45em; font: 11pt/1.45 var(--font-note); color: var(--auto-ink, var(--ink)); cursor: text; user-select: text; -webkit-user-select: text; overflow-wrap: anywhere; }
 .box.locked .box-text { cursor: default; }
 .box.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--box-shadow); }
 .box.editing { border-color: color-mix(in srgb, var(--accent) 70%, var(--box-border)); }
@@ -417,7 +417,9 @@ body.connecting-now .sock { opacity: .7; }
 .box-text ul, .box-text ol { margin: 2px 0; padding-left: 22px; }
 .box-text blockquote { margin: 4px 0; padding: 2px 10px; border-left: 3px solid var(--accent-2); opacity: .85; font-style: italic; }
 .box-text pre { margin: 4px 0; padding: 6px 8px; background: color-mix(in srgb, currentColor 8%, transparent); border-radius: 4px; font: 10pt/1.4 Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; }
-.box-text a { color: #2f6fd0; text-decoration: underline; cursor: pointer; }
+.box-text a { color: var(--auto-link, #2f6fd0); text-decoration: underline; cursor: pointer; }
+/* Schriftfarbe passend zum Hintergrund (seit 1.14): Anzeige-Korrektur für Hervorhebungen und kaum lesbare Farben */
+.box-text [style*="--kt-ink"] { color: var(--kt-ink) !important; }
 /* Videos (z.B. aus OneNote) */
 .fimg-play, .kt-video .kt-play { position: absolute; left: 50%; top: 50%; width: 56px; height: 40px; margin: -20px 0 0 -28px; border: 0; border-radius: 10px; background: rgba(0,0,0,.62); cursor: pointer; z-index: 2; }
 .fimg-play::after, .kt-video .kt-play::after { content: ""; position: absolute; left: 22px; top: 11px; border-style: solid; border-width: 9px 0 9px 15px; border-color: transparent transparent transparent #fff; }
@@ -430,7 +432,7 @@ body.connecting-now .sock { opacity: .7; }
 .vid-bar .btn { background: #333; color: #eee; border-color: #555; height: 26px; padding: 0 10px; }
 .vid-frame { position: relative; padding-top: 56.25%; }
 .vid-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-body[data-theme="dunkel"] .box-text a { color: #7fb0ff; }
+body[data-theme="dunkel"] .box-text a { color: var(--auto-link, #7fb0ff); }
 .box-text hr { border: 0; border-top: 1px solid var(--line-2); margin: 8px 0; }
 .box-text table { border-collapse: collapse; margin: 4px 0; }
 .box-text td, .box-text th { border: 1px solid var(--line-2); padding: 3px 7px; min-width: 44px; vertical-align: top; }
@@ -846,14 +848,15 @@ body[data-theme="dunkel"] { --xl-grid: #4a4a4a; --xl-accent: #6d9ae6; --xl-sel: 
 .xl-title { font: 600 9.5px/12px var(--font-ui); color: var(--ink-3); opacity: 0; transition: opacity .12s; white-space: nowrap; cursor: text; }
 .box.xl:hover .xl-title, .box.xl.sel .xl-title { opacity: 1; }
 .xl-wrap { position: relative; }
-.xl-grid { border-collapse: collapse; table-layout: fixed; font: 11pt/1.3 var(--font-note); color: var(--ink); cursor: cell; }
+.xl-grid { border-collapse: collapse; table-layout: fixed; font: 11pt/1.3 var(--font-note); color: var(--auto-ink, var(--ink)); cursor: cell; }
 .xl-grid td { border: 1px solid var(--xl-grid); padding: 2px 5px; height: 24px; vertical-align: bottom; white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden; }
 .box.xl.xl-nogrid .xl-grid td { border-color: transparent; }
 .box.xl.xl-nogrid.sel .xl-grid td { border-color: color-mix(in srgb, var(--xl-grid) 50%, transparent); border-style: dashed; }
 .xl-grid td.xl-n { white-space: nowrap; }
 .xl-grid td.xl-r { text-align: right; } .xl-grid td.xl-c { text-align: center; } .xl-grid td.xl-l { text-align: left; }
 .xl-grid td.xl-err { color: #c0392b; }
-.xl-grid tr.xl-hd td { background: var(--xl-acc); color: #fff; border-color: color-mix(in srgb, var(--xl-acc) 75%, #000); }
+body[data-theme="dunkel"] .xl-grid td.xl-err { color: #ff8a7d; }
+.xl-grid tr.xl-hd td { background: var(--xl-acc); color: var(--xl-hd-ink, #fff); border-color: color-mix(in srgb, var(--xl-acc) 75%, #000); }
 .xl-grid tr.xl-bd td { background: color-mix(in srgb, var(--xl-acc) 12%, transparent); }
 .xl-ov { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
 .xl-selr { position: absolute; background: var(--xl-sel); outline: 1px solid var(--xl-accent); outline-offset: -1px; }
@@ -1606,6 +1609,212 @@ function blobToDataURL(blob) {
 }
 
 function nextFrame() { return new Promise(r => requestAnimationFrame(() => r())); }
+
+</script>
+<script>
+/* ---- js/contrast.js ---- */
+'use strict';
+/* Kontrast: Schriftfarbe passend zum Hintergrund (seit 1.14)
+
+   Automatisch (keine Farbe gewählt):
+     helle bzw. dunkle Tönung der Hintergrundfarbe – nie reines Weiss oder Schwarz.
+     Das Design gibt die Tendenz vor: dunkles Design -> hell, helles Design -> dunkel.
+     Nur wenn das auf diesem Hintergrund nicht gut lesbar wäre, wird die Gegenseite genommen
+     (z.B. dunkle Schrift auf einem hellgelben Feld im dunklen Design).
+   Fest gewählte Farben:
+     bleiben gespeichert wie gewählt. Nur wenn sie auf dem Hintergrund kaum zu erkennen sind
+     (Kontrast unter 3:1), wird die ANZEIGE in derselben Farbe heller bzw. dunkler gemacht.
+   Die Anzeige-Korrektur steht als CSS-Variable --kt-ink im style-Attribut und wird beim Speichern
+   wieder entfernt (boxHtml). */
+const Contrast = {
+  MIN: 3,        // darunter gilt eine Farbe als kaum lesbar
+  GOOD: 4.5,     // so viel Kontrast bekommt eine korrigierte bzw. automatische Farbe mindestens
+  raw: false,    // beim Export: keine Anzeige-Korrekturen im Text (Originalfarben)
+  _c: new Map(), _a: new Map(), _ctx: null, _theme: new Map(),
+
+  /* fest gewählte Farben bei zu wenig Kontrast anpassen? (Ansicht -> Lesbare Farben) */
+  fixOn() { return !this.raw && !(typeof Store !== 'undefined' && Store.ui && Store.ui.inkFix === false); },
+  dark() { return typeof document !== 'undefined' && !!document.body && document.body.dataset.theme === 'dunkel'; },
+  key() { return (this.raw ? 'r' : this.fixOn() ? 'f' : 'a') + (this.dark() ? 'd' : 'h'); },
+
+  /* Farbe -> [r, g, b, a] (0..255) oder null */
+  rgb(c) {
+    if (Array.isArray(c)) return c;
+    if (!c || typeof c !== 'string') return null;
+    const k = c.trim().toLowerCase();
+    if (this._c.has(k)) return this._c.get(k);
+    let v = null, m;
+    if ((m = /^#([0-9a-f]{3,4})$/.exec(k))) v = [...m[1]].map(h => parseInt(h + h, 16));
+    else if ((m = /^#([0-9a-f]{6}|[0-9a-f]{8})$/.exec(k))) v = m[1].match(/../g).map(h => parseInt(h, 16));
+    else if ((m = /^rgba?\(([^)]+)\)$/.exec(k))) {
+      v = m[1].split(/[\s,/]+/).filter(Boolean).map((x, i) => {
+        const n = parseFloat(x), pc = x.endsWith('%');
+        return i < 3 ? (pc ? n * 2.55 : n) : (pc ? n * 2.55 : n * 255);
+      });
+    } else if ((m = /^color\(srgb\s+([^)]+)\)$/.exec(k))) {   // so liefert der Browser color-mix() zurück
+      v = m[1].split(/[\s/]+/).filter(Boolean).map(x => (x.endsWith('%') ? parseFloat(x) / 100 : parseFloat(x)) * 255);
+    } else if (k === 'transparent') v = [0, 0, 0, 0];
+    else if (!/^(var|color-mix|calc|inherit|initial|unset|revert|currentcolor|none)\b/.test(k)) v = this.named(k);
+    if (v && (v.length < 3 || v.slice(0, 3).some(x => !isFinite(x)))) v = null;
+    if (v) { v = v.slice(0, 4); if (v.length === 3 || !isFinite(v[3])) v[3] = 255; v = v.map(x => Math.max(0, Math.min(255, x))); }
+    if (this._c.size > 4000) this._c.clear();
+    this._c.set(k, v);
+    return v;
+  },
+  /* Farbnamen (red, gold, …) über den Browser auflösen */
+  named(k) {
+    if (typeof document === 'undefined') return null;
+    try {
+      if (!this._ctx) this._ctx = document.createElement('canvas').getContext('2d');
+      const g = this._ctx;
+      g.fillStyle = '#000'; g.fillStyle = k; const a = g.fillStyle;
+      g.fillStyle = '#fff'; g.fillStyle = k; const b = g.fillStyle;
+      if (a !== b) return null;   // ungültig
+      return /^(#|rgba?\()/.test(a) ? this.rgb(a) : null;
+    } catch (e) { return null; }
+  },
+  hex(v) { v = this.rgb(v); return v ? '#' + v.slice(0, 3).map(x => Math.round(x).toString(16).padStart(2, '0')).join('') : ''; },
+  lum(v) {
+    const f = (x) => { x /= 255; return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(v[0]) + 0.7152 * f(v[1]) + 0.0722 * f(v[2]);
+  },
+  ratio(a, b) { const x = this.lum(a), y = this.lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); },
+  mix(a, b, t) { return [0, 1, 2].map(i => a[i] + (b[i] - a[i]) * t).concat(255); },
+  /* halbtransparente Farbe über einen Hintergrund legen */
+  over(fg, bg) { const t = (fg[3] == null ? 255 : fg[3]) / 255; return [0, 1, 2].map(i => bg[i] + (fg[i] - bg[i]) * t).concat(255); },
+
+  /* Automatische Schriftfarbe für einen Hintergrund (Tendenz: dunkles Design -> hell, helles -> dunkel) */
+  auto(bg, dark, min = this.GOOD) {
+    const B = this.rgb(bg);
+    if (!B) return null;
+    const k = this.hex(B) + (dark ? 'd' : 'h') + min;
+    if (this._a.has(k)) return this._a.get(k);
+    const tone = (light) => {
+      const T = light ? [255, 255, 255] : [0, 0, 0];
+      let c = null;
+      // Tönung: 84–86 % Richtung Weiss/Schwarz, bei mittleren Farben weiter bis gut lesbar – höchstens 94 %, nie ganz weiss oder schwarz
+      for (let t = light ? 0.86 : 0.84; t <= 0.945; t += 0.02) { c = this.mix(B, T, t); if (this.ratio(c, B) >= this.GOOD) break; }
+      return c;
+    };
+    const a = tone(dark), b = tone(!dark);
+    const ra = this.ratio(a, B), rb = this.ratio(b, B);
+    const out = this.hex(ra >= min || ra >= rb ? a : b);
+    if (this._a.size > 2000) this._a.clear();
+    this._a.set(k, out);
+    return out;
+  },
+
+  /* Fest gewählte Farbe: null = gut lesbar (unverändert), sonst dieselbe Farbe heller/dunkler */
+  readable(color, bg, dark) {
+    const C = this.rgb(color), B = this.rgb(bg);
+    if (!C || !B || C[3] < 128) return null;
+    if (this.ratio(C, B) >= this.MIN) return null;
+    const [h, s, l] = this.hsl(C);
+    // Schwarz/Weiss (bzw. fast) wie automatische Schrift behandeln – z.B. schwarzer Text aus Word/OneNote im dunklen Design
+    if (s < 0.1 && (l < 0.16 || l > 0.84)) return this.auto(B, dark);
+    let best = null, bd = 2;
+    for (const dir of [1, -1]) {
+      for (let x = l + dir * 0.02; x > 0.03 && x < 0.97; x += dir * 0.02) {
+        const c = this.fromHsl(h, s, x);
+        if (this.ratio(c, B) >= this.GOOD) {
+          const d = Math.abs(x - l) - ((dir > 0) === !!dark ? 0.001 : 0);   // bei Gleichstand: Richtung des Designs
+          if (d < bd) { bd = d; best = c; }
+          break;
+        }
+      }
+    }
+    return best ? this.hex(best) : this.auto(B, dark);
+  },
+  hsl(v) {
+    const r = v[0] / 255, g = v[1] / 255, b = v[2] / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+    if (mx === mn) return [0, 0, l];
+    const d = mx - mn, s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return [h / 6, s, l];
+  },
+  fromHsl(h, s, l) {
+    if (!s) return [l * 255, l * 255, l * 255, 255];
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const f = (t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+    return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255, 255];
+  },
+
+  /* Farbe einer CSS-Variablen des aktuellen Designs (z.B. --box-bg) */
+  themeColor(name) {
+    const k = (this.dark() ? 'd' : 'h') + name;
+    if (this._theme.has(k)) return this._theme.get(k);
+    let v = null;
+    try { v = this.rgb(getComputedStyle(document.body).getPropertyValue(name)); } catch (e) { /* */ }
+    v = v || (this.dark() ? [42, 42, 42, 255] : [255, 255, 255, 255]);
+    this._theme.set(k, v);
+    return v;
+  },
+
+  /* Schriftfarbe eines Textfelds (style.color). Frühere Versionen setzten bei Fülleffekt und
+     Schnellformatvorlagen fest #252423 bzw. #F3F3F3 – das war als "automatisch" gemeint. */
+  LEGACY: new Set(['#252423', '#f3f3f3']),
+  boxColor(st) {
+    const c = st && st.color;
+    if (!c) return null;
+    return st.bg && this.LEGACY.has(String(c).toLowerCase()) ? null : c;
+  },
+
+  /* gespeicherte Farbe (nicht die angezeigte) eines Elements im Text */
+  declared(e, root) {
+    for (let x = e; x && x !== root && x.nodeType === 1; x = x.parentElement) {
+      if (x.classList && x.classList.contains('box-text')) break;
+      if (x.style && x.style.color) return x.style.color;
+      if (x.tagName === 'FONT' && x.getAttribute('color')) return x.getAttribute('color');
+    }
+    return null;
+  },
+
+  /* Text eines Feldes durchgehen: Hervorhebungen (eigener Hintergrund) und fest gewählte Farben.
+     base = { bg: Hintergrund des Feldes, declared: Feldfarbe oder null, shown: angezeigte Farbe } */
+  adapt(root, base) {
+    if (!root) return;
+    const stale = root.querySelectorAll('[style*="--kt-ink"]');
+    if (!base || this.raw) { for (const x of stale) this.clear(x); return; }
+    if (!stale.length && !root.querySelector('[style*="color"], [style*="background"], font[color]')) return;
+    const fix = this.fixOn(), dark = this.dark();
+    const walk = (el, bg, declared, shown) => {
+      for (const c of el.children) {
+        const st = c.style;
+        if (!st) continue;
+        let want = null, B = bg;
+        const ob = st.backgroundColor ? this.rgb(st.backgroundColor) : null;
+        if (ob && ob[3] >= 26) B = ob[3] >= 250 ? ob : this.over(ob, bg);
+        const own = st.color || (c.tagName === 'FONT' ? c.getAttribute('color') || '' : '');
+        const decl = own || declared;
+        let now = shown;
+        if (own) {
+          const f = fix ? this.readable(own, B, dark) : null;
+          now = f || this.hex(own) || own;
+          if (f) want = f;
+        } else if (B !== bg) {
+          // eigener Hintergrund (Texthervorhebung): geerbte Farbe neu prüfen
+          if (decl) { const f = fix ? this.readable(decl, B, dark) : null; now = f || this.hex(decl) || decl; }
+          else now = this.auto(B, dark);
+          if (now !== shown) want = now;
+        }
+        if (want) { if (st.getPropertyValue('--kt-ink') !== want) st.setProperty('--kt-ink', want); } else if (st.getPropertyValue('--kt-ink')) this.clear(c);
+        if (c.namespaceURI === 'http://www.w3.org/1999/xhtml') walk(c, B, decl, now);
+      }
+    };
+    walk(root, this.rgb(base.bg), base.declared || null, base.shown);
+  },
+  clear(x) {
+    x.style.removeProperty('--kt-ink');
+    if (!x.getAttribute('style')) x.removeAttribute('style');
+  },
+  /* Anzeige-Korrektur aus gespeichertem HTML entfernen */
+  strip(html) {
+    if (html.indexOf('--kt-ink') < 0) return html;
+    return html.replace(/\s*--kt-ink:\s*[^;"]*;?/g, '').replace(/\sstyle="\s*"/g, '');
+  },
+};
+if (typeof module !== 'undefined') module.exports = { Contrast };
 
 </script>
 <script>
@@ -3152,6 +3361,7 @@ const ICONS = {
   magnet: '<path d="M6 3v8a6 6 0 0 0 12 0V3"/><path d="M6 7h3M15 7h3M9 3v8a3 3 0 0 0 6 0V3"/>',
   sidebar: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>',
   moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
+  contrast: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
   archive: '<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
@@ -3414,7 +3624,7 @@ const Backend = (() => {
       setTimeout(collectGarbage, 8000);
       return {
         session: myId, groups: groups || [], pages, zustand: zustand || null, verlauf: verlauf || null,
-        info: { version: '1.13', author: 'TheDragonas', persisted },
+        info: { version: '1.14', author: 'TheDragonas', persisted },
       };
     },
 
@@ -3639,7 +3849,7 @@ const UI_DEFAULTS = {
   boxDefault: {}, linkDefault: { style: 'kurve', arrow: 'ende', w: 2 },
   pens: null, activePen: 0, eraserMode: 'strich', eraserSize: 14, shapeFill: null, recognize: false, penOnly: false,
   ruler: { visible: false, x: 300, y: 300, angle: 0 }, protractor: { visible: false, x: 500, y: 400, angle: 0 },
-  scrollbars: true, showAnchors: false, calc: {}, linkRoute: true,
+  scrollbars: true, showAnchors: false, calc: {}, linkRoute: true, inkFix: true,
 };
 
 /* ---------------------------------------------------------------- Seiten */
@@ -5948,7 +6158,7 @@ function hydrateBox(t) {
 }
 /* HTML eines Textfelds ohne sitzungsgebundene Bildadressen */
 function boxHtml(t) {
-  return t.innerHTML.replace(/(<img\b[^>]*?\bdata-kt-src="[^"]*"[^>]*?)\ssrc="(?:blob:|bilder\/)[^"]*"/g, '$1').replace(/(<img\b[^>]*?)\ssrc="(?:blob:|bilder\/)[^"]*"([^>]*\bdata-kt-src=)/g, '$1$2');
+  return Contrast.strip(t.innerHTML).replace(/(<img\b[^>]*?\bdata-kt-src="[^"]*"[^>]*?)\ssrc="(?:blob:|bilder\/)[^"]*"/g, '$1').replace(/(<img\b[^>]*?)\ssrc="(?:blob:|bilder\/)[^"]*"([^>]*\bdata-kt-src=)/g, '$1$2');
 }
 
 const Canvas = {
@@ -6135,16 +6345,62 @@ const Canvas = {
     e.classList.toggle('onote', !!st.on);
     e.style.background = st.bg && st.bg !== 'transparent' ? st.bg : '';
     e.style.borderColor = st.border || '';
-    if (b.sheet) { Sheet.update(b, e, force); return; }
+    if (b.sheet) { this.applyInk(b, e); Sheet.update(b, e, force); return; }
     if (b.chart) { Chart.update(b, e, force); return; }
     const t = e.querySelector('.box-text');
-    t.style.color = st.color || '';
     t.style.lineHeight = st.lh || '';
     const ce = locked ? 'false' : 'true';
     if (t.getAttribute('contenteditable') !== ce) t.setAttribute('contenteditable', ce);
-    if (e._html !== b.html && (force || this.editing !== b.id)) { t.innerHTML = b.html; e._html = b.html; hydrateBox(t); }
+    if (e._html !== b.html && (force || this.editing !== b.id)) { t.innerHTML = b.html; e._html = b.html; e._inkHtml = null; hydrateBox(t); }
+    this.applyInk(b, e);
     const key = JSON.stringify(b.images) + '|' + b.w + '|' + (this.selImg && this.selImg.box === b.id ? this.selImg.img : '');
     if (e._fl !== key) { this.renderFloats(b, e); e._fl = key; }
+  },
+  /* ---------------------------------------------------------- Schriftfarbe passend zum Hintergrund (seit 1.14) */
+  /* Hintergrund der Seite, wie er angezeigt wird (Seitenfarbe im dunklen Design abgedunkelt, siehe applyView) */
+  pageBg() {
+    const pc = this.page && this.page.color && Contrast.rgb(this.page.color);
+    if (!pc) return Contrast.themeColor('--canvas');
+    return Contrast.dark() ? Contrast.mix([31, 31, 31, 255], pc, 0.16) : pc;
+  },
+  /* Hintergrund hinter dem Text eines Feldes: Fülleffekt, sonst Seite (unsichtbares Feld, Tabelle) bzw. Feldfarbe des Designs */
+  inkBg(b) {
+    const st = b.style || {};
+    if (st.bg && st.bg !== 'transparent') {
+      const c = Contrast.rgb(st.bg);
+      if (c && c[3] >= 250) return c;
+      if (c && c[3] > 0) return Contrast.over(c, Contrast.themeColor('--box-bg'));
+    }
+    if (st.bg === 'transparent' || b.sheet) return this.pageBg();
+    return Contrast.themeColor('--box-bg');
+  },
+  /* automatische Schriftfarbe setzen und fest gewählte Farben prüfen (nur Anzeige, gespeichert wird das Original) */
+  applyInk(b, e) {
+    if (!b || !e || b.chart) return;
+    const bg = this.inkBg(b), dark = Contrast.dark();
+    const own = Contrast.boxColor(b.style);
+    const key = Contrast.key() + '|' + Contrast.hex(bg) + '|' + (own || '');
+    if (e._inkKey === key && e._inkHtml === b.html) return;
+    e._inkKey = key; e._inkHtml = b.html;
+    const auto = Contrast.auto(bg, dark);
+    e.style.setProperty('--auto-ink', auto);
+    const link = Contrast.fixOn() ? Contrast.readable(dark ? '#7fb0ff' : '#2f6fd0', bg, dark) : null;
+    if (link) e.style.setProperty('--auto-link', link); else e.style.removeProperty('--auto-link');
+    const t = !b.sheet && e.querySelector('.box-text');
+    if (!t) return;
+    const fix = own && Contrast.fixOn() ? Contrast.readable(own, bg, dark) : null;
+    t.style.color = fix || own || '';
+    Contrast.adapt(t, { bg, declared: own, shown: fix || (own && Contrast.hex(own)) || auto });
+  },
+  /* nach Wechsel von Design, Seitenfarbe oder Einstellung */
+  refreshInk() {
+    if (!this.page) return;
+    for (const b of this.page.boxes) {
+      const e = this.els.get(b.id);
+      if (!e) continue;
+      if (b.sheet) Sheet.update(b, e);
+      this.applyInk(b, e);
+    }
   },
   /* Bilder als "Floats": der Text fliesst automatisch um das Bild herum */
   renderFloats(b, e) {
@@ -6516,6 +6772,7 @@ const Canvas = {
     } else vp.style.backgroundImage = 'none';
     const pc = this.page && this.page.color;
     vp.style.backgroundColor = !pc ? '' : document.body.dataset.theme === 'dunkel' ? `color-mix(in srgb, ${pc} 16%, #1f1f1f)` : pc;
+    if (this._inkPage !== (pc || '') + Contrast.key()) { this._inkPage = (pc || '') + Contrast.key(); this.refreshInk(); }
     if (typeof Draw !== 'undefined') Draw.onView();
     const pct = Math.round(v.z * 100);
     $('#sb-zoom').value = pct;
@@ -6799,6 +7056,7 @@ const Canvas = {
     if (!b) return;
     b.html = boxHtml(t);
     this.els.get(id)._html = b.html;
+    this.applyInk(b, this.els.get(id));
     Hist.pendingLabel = 'Text bearbeiten';
     Hist.touchPage(this.pageId);
     Hist.commitSoon();
@@ -6811,6 +7069,7 @@ const Canvas = {
     if (!b || !t) return;
     b.html = boxHtml(t);
     this.els.get(b.id)._html = b.html;
+    this.applyInk(b, this.els.get(b.id));
     Hist.touchPage(this.pageId);
     this.layoutSoon();
   },
@@ -6855,6 +7114,7 @@ const Canvas = {
         fn(t);
         b.html = boxHtml(t);
         this.els.get(b.id)._html = b.html;
+        this.applyInk(b, this.els.get(b.id));
         t.blur();
       }
       getSelection().removeAllRanges();
@@ -9716,17 +9976,31 @@ const Sheet = {
     e.querySelector('.xl-title').textContent = d.name;
     e.classList.toggle('xl-nogrid', !d.grid);
     e.style.setProperty('--xl-acc', d.color || 'var(--xl-accent)');
-    if (force || e._xlVer !== this.ver || e._xlSig !== this.sigOf(d)) this.renderGrid(b, e);
+    // Schriftfarbe passend zum Hintergrund: Seite, Kopfzeile, gebänderte Zeilen, Füllfarben der Zellen
+    const base = Canvas.inkBg(b), acc = (d.color && Contrast.rgb(d.color)) || Contrast.themeColor('--xl-accent');
+    const dark = Contrast.dark();
+    this._ink = { base, hd: acc, band: Contrast.mix(base, acc, 0.12), dark, fix: Contrast.fixOn() };
+    const hdInk = Contrast.auto(acc, true, Contrast.MIN);   // Kopfzeile: wie bisher eher hell, solange lesbar
+    if (e._xlHd !== hdInk) { e.style.setProperty('--xl-hd-ink', hdInk); e._xlHd = hdInk; }
+    const ink = Contrast.key() + Contrast.hex(base) + Contrast.hex(acc);
+    if (force || e._xlVer !== this.ver || e._xlSig !== this.sigOf(d) || e._xlInk !== ink) { e._xlInk = ink; this.renderGrid(b, e); }
     this.overlay(b, e);
   },
   sigOf(d) { return d.ncols + 'x' + d.nrows + '|' + d.cols.join(',') + '|' + (d.head ? 1 : 0) + (d.band ? 1 : 0) + (d.grid ? 1 : 0) + d.color; },
-  cellStyle(f, hd) {
+  cellStyle(f, hd, band, orig) {   // orig = gespeicherte Farben (Kopieren nach Word/Excel)
     let s = '';
     if (f.b || hd) s += 'font-weight:700;';
     if (f.b === false && hd) s += 'font-weight:400;';
     if (f.i) s += 'font-style:italic;';
     if (f.u || f.s) s += `text-decoration:${f.u ? 'underline ' : ''}${f.s ? 'line-through' : ''};`;
-    if (f.c) s += `color:${f.c};`;
+    const k = orig ? null : this._ink;
+    if (k && (f.c || f.bg)) {
+      // fest gewählte Schriftfarbe bleibt (nur bei zu wenig Kontrast heller/dunkler), sonst automatisch zur Füllfarbe
+      let bg = f.bg && Contrast.rgb(f.bg);
+      bg = bg && bg[3] >= 26 ? (bg[3] >= 250 ? bg : Contrast.over(bg, k.base)) : hd ? k.hd : band ? k.band : k.base;
+      const c = f.c ? (k.fix && Contrast.readable(f.c, bg, k.dark)) || f.c : Contrast.auto(bg, hd || k.dark);
+      s += `color:${c};`;
+    } else if (f.c) s += `color:${f.c};`;
     if (f.bg) s += `background:${f.bg};`;
     if (f.fs) s += `font-size:${f.fs}pt;`;
     return s;
@@ -9742,7 +10016,8 @@ const Sheet = {
       const v = sh ? book.val(sh, c, r) : null;
       const disp = XL.format(v, f);
       const al = f.al || disp.al;
-      return ['xl-' + al + (disp.err ? ' xl-err' : '') + (typeof v === 'number' ? ' xl-n' : ''), this.cellStyle(f, hd), disp.t];
+      const band = !hd && d.band && r % 2 === (d.head ? 0 : 1);
+      return ['xl-' + al + (disp.err ? ' xl-err' : '') + (typeof v === 'number' ? ' xl-n' : ''), this.cellStyle(f, hd, band), disp.t];
     };
     const t = e.querySelector('.xl-grid');
     if (e._xlSig === sig && e._cells && e._cells.length === d.nrows && t.rows.length === d.nrows) {
@@ -10205,7 +10480,7 @@ const Sheet = {
     const f = this.cellF(d, a.c, a.r);
     const ta = el('textarea', { class: 'xl-ed ui-only', spellcheck: 'false', rows: 1 });
     ta.value = text;
-    Object.assign(ta.style, { left: r.x + 'px', top: r.y + 'px', minWidth: r.w + 'px', minHeight: r.h + 'px', fontWeight: f.b || (d.head && a.r === 0) ? '700' : '', fontStyle: f.i ? 'italic' : '', fontSize: f.fs ? f.fs + 'pt' : '', textAlign: f.al === 'c' ? 'center' : f.al === 'r' ? 'right' : '', color: f.c || '', background: f.bg || '' });
+    Object.assign(ta.style, { left: r.x + 'px', top: r.y + 'px', minWidth: r.w + 'px', minHeight: r.h + 'px', fontWeight: f.b || (d.head && a.r === 0) ? '700' : '', fontStyle: f.i ? 'italic' : '', fontSize: f.fs ? f.fs + 'pt' : '', textAlign: f.al === 'c' ? 'center' : f.al === 'r' ? 'right' : '', color: f.c || f.bg ? (/color:([^;]+);/.exec(this.cellStyle(f, false)) || [])[1] || '' : '', background: f.bg || '' });
     ta.addEventListener('input', () => { if (!this.edit) return; this.edit.text = ta.value; this.edit.point = null; this.syncEditor('cell'); });
     ta.addEventListener('keydown', ev => this.onEditKey(ev, ta));
     ta.addEventListener('keyup', () => this.edit && this.afterCaret(ta));
@@ -10889,7 +11164,7 @@ const Sheet = {
         row.push(/[\t\n"]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t);
         crow.push(cell ? JSON.parse(JSON.stringify(cell)) : null);
         const f = (cell && cell.f) || {};
-        html += `<td style="border:1px solid #c8c6c4;padding:2px 6px;${this.cellStyle(f, d.head && r === 0)}${disp.al === 'r' || f.al === 'r' ? 'text-align:right;' : f.al === 'c' || disp.al === 'c' ? 'text-align:center;' : ''}">${escapeHtml(t)}</td>`;
+        html += `<td style="border:1px solid #c8c6c4;padding:2px 6px;${this.cellStyle(f, d.head && r === 0, false, true)}${disp.al === 'r' || f.al === 'r' ? 'text-align:right;' : f.al === 'c' || disp.al === 'c' ? 'text-align:center;' : ''}">${escapeHtml(t)}</td>`;
       }
       html += '</tr>';
       tsv.push(row.join('\t'));
@@ -15387,12 +15662,13 @@ const SYMBOLS = ['→', '←', '↑', '↓', '↔', '⇒', '⇐', '⇔', '➜', 
 const BOX_PRESETS = [
   { name: 'Standard', style: { bg: null, border: null, color: null }, sw: 'var(--box-bg)', bd: 'var(--box-border)' },
   { name: 'Unsichtbar (wie OneNote)', style: { bg: 'transparent', border: null, color: null }, sw: 'transparent', bd: 'var(--line-2)', dash: true },
-  { name: 'Idee', style: { bg: '#FFF4C2', border: '#E8C547', color: '#252423' } },
-  { name: 'Info', style: { bg: '#DCEBFF', border: '#6AA3E8', color: '#252423' } },
-  { name: 'Erledigt', style: { bg: '#DDF3E0', border: '#5DB36A', color: '#252423' } },
-  { name: 'Wichtig', style: { bg: '#FDE0E0', border: '#E06666', color: '#252423' } },
-  { name: 'Frage', style: { bg: '#EDE3FA', border: '#9B7AD6', color: '#252423' } },
-  { name: 'Dunkel', style: { bg: '#2B2F36', border: '#2B2F36', color: '#F3F3F3' } },
+  // Schriftfarbe automatisch (dunkle bzw. helle Tönung der Füllfarbe, siehe contrast.js)
+  { name: 'Idee', style: { bg: '#FFF4C2', border: '#E8C547', color: null } },
+  { name: 'Info', style: { bg: '#DCEBFF', border: '#6AA3E8', color: null } },
+  { name: 'Erledigt', style: { bg: '#DDF3E0', border: '#5DB36A', color: null } },
+  { name: 'Wichtig', style: { bg: '#FDE0E0', border: '#E06666', color: null } },
+  { name: 'Frage', style: { bg: '#EDE3FA', border: '#9B7AD6', color: null } },
+  { name: 'Dunkel', style: { bg: '#2B2F36', border: '#2B2F36', color: null } },
 ];
 
 function anchorElement() {
@@ -15613,7 +15889,7 @@ const Fmt = {
       this.painter = {
         kind: 'text', bold: parseInt(cs.fontWeight, 10) >= 600, italic: cs.fontStyle === 'italic',
         underline: cs.textDecorationLine.includes('underline'), strike: cs.textDecorationLine.includes('line-through'),
-        color: e.closest('[style*="color"],font[color]') ? cs.color : null, bg, font: cs.fontFamily.split(',')[0].replace(/["']/g, ''),
+        color: Contrast.declared(e), bg, font: cs.fontFamily.split(',')[0].replace(/["']/g, ''),
         size: Math.round(parseFloat(cs.fontSize) * 0.75 * 2) / 2,
       };
       UI.toast('Format übertragen: jetzt den Zieltext markieren (Esc = abbrechen)', 3500);
@@ -15929,7 +16205,7 @@ const COMMANDS = {
   checklist: { run: () => Fmt.checklist(), enabled: canText },
   style: { run: (t) => Fmt.blockStyle(t), enabled: canText },
   boxPreset: { run: (i) => Canvas.setBoxStyle({ ...BOX_PRESETS[i].style }, 'Schnellformatvorlage: ' + BOX_PRESETS[i].name) },
-  boxFill: { run: (c) => Canvas.setBoxStyle({ bg: c, color: c ? (luma(c) > 0.55 ? '#252423' : '#F3F3F3') : null }, 'Fülleffekt') },
+  boxFill: { run: (c) => Canvas.setBoxStyle({ bg: c, color: null }, 'Fülleffekt') },   // Schrift passt sich automatisch an
   boxBorder: { run: (c) => Canvas.setBoxStyle({ border: c }, 'Formkontur') },
   find: { run: () => Find.open('find') },
   replace: { run: () => Find.open('replace') },
@@ -16126,19 +16402,13 @@ const COMMANDS = {
   foldNav: { run: (w) => Sidebar.fold(w), active: (w) => !!(Store.ui.navFold || {})[w] },
   sidebar: { run: () => { Store.ui.sidebar = Store.ui.sidebar === false; Sidebar.applyWidths(); UiState.saveSoon(); }, active: () => Store.ui.sidebar !== false },
   theme: { run: (t) => { Store.ui.theme = t || (Store.ui.theme === 'dunkel' ? 'hell' : 'dunkel'); document.body.dataset.theme = Store.ui.theme; Canvas.render(); Canvas.renderLinks(); Canvas.applyView(); UiState.saveSoon(); }, active: (t) => Store.ui.theme === t },
+  inkFix: { run: () => { Store.ui.inkFix = Store.ui.inkFix === false; Canvas.refreshInk(); UiState.saveSoon(); UI.toast(Store.ui.inkFix ? 'Lesbare Farben: kaum lesbare Schriftfarben werden heller bzw. dunkler angezeigt' : 'Lesbare Farben aus: Schriftfarben genau wie gewählt'); }, active: () => Store.ui.inkFix !== false },
 };
 
 function linkActive(prop, def, v) {
   const ls = Canvas.page ? Canvas.linksOfSelection() : [];
   if (ls.length) return ls.some(l => (l[prop] || def) === v);
   return ((Store.ui.linkDefault || {})[prop] || def) === v;
-}
-
-function luma(hex) {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
-  if (!m) return 1;
-  const n = parseInt(m[1], 16);
-  return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
 }
 
 /* Start-Register bei aktiver Tabelle: Formatierung wirkt auf die markierten Zellen (wie Excel) */
@@ -21721,6 +21991,7 @@ const Export = {
     const origView = origPid && Store.ui.views[origPid] ? { ...Store.ui.views[origPid] } : null;
     const origTheme = document.body.dataset.theme;
     document.body.dataset.theme = 'hell';
+    Contrast.raw = true;   // Originalfarben exportieren (keine Anzeige-Korrekturen)
     try {
       let k = 0;
       for (const it of list) {
@@ -21735,6 +22006,7 @@ const Export = {
         await fn(page, it.pid, it);
       }
     } finally {
+      Contrast.raw = false;
       document.body.dataset.theme = origTheme;
       if (origPid && origView) Store.ui.views[origPid] = origView;
       Canvas.load(origPid);
@@ -24807,7 +25079,7 @@ const OneWrite = (() => {
     if (!t) return null;
     const r0 = W(t.getBoundingClientRect());
     const cols = (e._cols || []).map(c => c[1]);
-    const ink = '#252423';
+    const ink = cssHex(getComputedStyle(t).color) || '#252423';   // automatische Schriftfarbe der Tabelle
     const rows = [], vals = [];
     for (const tr of t.rows) {
       const row = [], vrow = [];
@@ -24815,7 +25087,8 @@ const OneWrite = (() => {
         const cs = getComputedStyle(td);
         const text = td.textContent;
         vrow.push(text);
-        const color = cssHex(cs.color);
+        const cf = ((b.sheet.cells || {})[XL.key(td.cellIndex, tr.rowIndex)] || {}).f || {};
+        const color = cf.bg && !cf.c ? null : cssHex(cs.color);   // automatisch zur Füllfarbe = keine feste Farbe
         const base = { font: firstFont(cs.fontFamily), size: ptOf(cs.fontSize), color: color && color !== ink ? color : null, b: parseInt(cs.fontWeight, 10) >= 600, i: cs.fontStyle === 'italic' };
         const dl = cs.textDecorationLine || '';
         const align = cs.textAlign === 'center' ? 'center' : (cs.textAlign === 'right' || cs.textAlign === 'end') ? 'right' : null;
@@ -25364,7 +25637,7 @@ const Ribbon = {
       ], 3));
       const presets = BOX_PRESETS.map((p, i) => ({
         cmd: 'boxPreset', arg: i, cls: 'swatch', title: 'Schnellformatvorlage: ' + p.name, html: 'Abc',
-        style: { background: p.sw || p.style.bg, borderColor: p.bd || p.style.border, color: p.style.color || 'var(--ink)', borderStyle: p.dash ? 'dashed' : 'solid', borderWidth: '1.5px' },
+        style: { background: p.sw || p.style.bg, borderColor: p.bd || p.style.border, color: p.style.color || (p.style.bg && p.style.bg !== 'transparent' ? Contrast.auto(p.style.bg, Contrast.dark()) : 'var(--ink)'), borderStyle: p.dash ? 'dashed' : 'solid', borderWidth: '1.5px' },
       }));
       G('Zeichnung', B.gallery(presets), B.col(B.colorSplit('boxFill', 'bucket', 'Fülleffekt (Hintergrund des Textfelds)', { noneLabel: 'Standard' }), B.colorSplit('boxBorder', 'outline', 'Formkontur (Rahmenfarbe)', { noneLabel: 'Standard' })));
       G('Bearbeiten', B.col(B.small('find', 'Suchen', 'search', 'Suchen (Strg+F)'), B.small('replace', 'Ersetzen', 'replace', 'Ersetzen (Strg+H)'), B.small('selectAll', 'Markieren', 'selectAll', 'Alles markieren (Strg+A)')));
@@ -25441,7 +25714,8 @@ const Ribbon = {
         B.col(B.small('foldNav', 'Notizbücher eingeklappt', 'foldLeft', 'Notizbuch-Spalte zu einem schmalen Streifen einklappen (Klick auf den Streifen klappt sie wieder auf)', 'groups'), B.small('foldNav', 'Seitenliste eingeklappt', 'foldLeft', 'Seitenliste zu einem schmalen Streifen einklappen', 'pages')));
       G('Hilfen', B.col(B.small('snap', 'Am Raster ausrichten', 'magnet'), B.small('scrollbars', 'Bildlaufleisten', 'scrollbars', 'Bildlaufleisten unten und rechts (Bereich = Rechteck um alle Objekte, wächst beim Verschieben mit)'), B.small('showAnchors', 'Ankerpunkte', 'anchor', 'Ecken des Rechtecks um alle Objekte immer anzeigen (sonst nur beim Scrollen)')),
         B.col(B.small('goAnchor', 'Zum Anfang', 'cornerUp', 'Ecke oben links aller Objekte anzeigen (Strg+Pos1)', 'tl'), B.small('goAnchor', 'Zum Ende', 'down', 'Ecke unten rechts aller Objekte anzeigen (Strg+Ende)', 'br')));
-      G('Design', B.big('theme', 'Hell', 'sun', 'Helles Design', 'hell'), B.big('theme', 'Dunkel', 'moon', 'Dunkles Design', 'dunkel'));
+      G('Design', B.big('theme', 'Hell', 'sun', 'Helles Design', 'hell'), B.big('theme', 'Dunkel', 'moon', 'Dunkles Design', 'dunkel'),
+        B.big('inkFix', 'Lesbare Farben', 'contrast', 'Schrift passt sich dem Hintergrund an. Ist dies eingeschaltet, werden auch fest gewählte Schriftfarben, die auf dem Hintergrund kaum zu erkennen sind, heller bzw. dunkler angezeigt (gespeichert bleibt die gewählte Farbe).'));
     }
 
     if (id === 'tabelle') {
