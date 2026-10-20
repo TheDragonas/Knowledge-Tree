@@ -3743,7 +3743,7 @@ const Backend = (() => {
       try { persisted = navigator.storage && navigator.storage.persist ? await navigator.storage.persist() : false; } catch (e) { /* */ }
       return {
         session: myId, groups: groups || [], pages, zustand: zustand || null, verlauf: verlauf || null,
-        info: { version: '1.20', author: 'TheDragonas', persisted },
+        info: { version: '1.21', author: 'TheDragonas', persisted },
       };
     },
 
@@ -24064,6 +24064,9 @@ const ON = (() => {
         return { name, missing: true, why, external: fb.external || '', ...this.pos(props) };
       }
       if (fb.guid) this.used.add(fb.guid);
+      // Symbolbild des Anhangs (PictureContainer, von OneNote erzeugt) gehört zum Anhang – nicht „nicht zugeordnet“
+      const icon = props.get(P.PictureContainer) && this.fileOf(ctx.view, props.get(P.PictureContainer));
+      if (icon && icon.guid) this.used.add(icon.guid);
       return { name, data: fb.data, mime: sniff(fb.data), ...this.pos(props) };
     }
     table(ctx, o) {
@@ -25641,6 +25644,7 @@ const OneWrite = (() => {
     return b;
   };
   const NIL = '{00000000-0000-0000-0000-000000000000}';
+  const VH_CONTEXT = '{7111497F-1B6B-4209-9491-C98B04CF4C5A}';
 
   let CRC_T = null;
   const crc32 = (u8, crc = 0) => {
@@ -25648,6 +25652,15 @@ const OneWrite = (() => {
     let c = (crc ^ 0xFFFFFFFF) >>> 0;
     for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
     return (c ^ 0xFFFFFFFF) >>> 0;
+  };
+  /* MsoCrc32Compute ([MS-OSHARED] 2.4.3.2): .onetoc2 rechnet seine Prüfsummen damit (Polynom 0xAF, nicht gespiegelt,
+   * Start 0, ohne Abschluss-XOR) – .one dagegen mit CRC-32 nach RFC 3309 (oben). An echten OneNote-Dateien geprüft. */
+  let MSO_T = null;
+  const msoCrc32 = (u8, crc = 0) => {
+    if (!MSO_T) { MSO_T = new Uint32Array(256); for (let i = 0; i < 256; i++) { let v = (i << 24) >>> 0; for (let k = 0; k < 8; k++) v = (v & 0x80000000) ? ((v << 1) ^ 0xAF) >>> 0 : (v << 1) >>> 0; MSO_T[i] = v >>> 0; } }
+    let c = crc >>> 0;
+    for (let i = 0; i < u8.length; i++) c = ((c << 8) ^ MSO_T[((c >>> 24) ^ u8[i]) & 0xFF]) >>> 0;
+    return c >>> 0;
   };
   /* MD5 nach RFC 1321 (für schreibgeschützte Objekte) */
   const md5 = (msg) => {
@@ -25692,6 +25705,46 @@ const OneWrite = (() => {
   const u64b = (v) => { const b = new Uint8Array(8); const dv = new DataView(b.buffer); dv.setUint32(0, Number(BigInt(v) & 0xFFFFFFFFn), true); dv.setUint32(4, Number(BigInt(v) >> 32n), true); return b; };
   const fileTime = (ms) => u64b((BigInt(Math.round(ms)) + 11644473600000n) * 10000n);
   const time32 = (ms) => u32b(Math.max(0, Math.floor(ms / 1000) - 315532800));
+  /* kleines PNG (RGBA, „stored“-Deflate, ohne Canvas – läuft auch in Node): px(x, y) → [r, g, b, a] */
+  const pngImage = (w, h, px) => {
+    const raw = new Uint8Array(h * (w * 4 + 1));
+    for (let y = 0, o = 0; y < h; y++) { raw[o++] = 0; for (let x = 0; x < w; x++) { const c = px(x, y); raw[o++] = c[0]; raw[o++] = c[1]; raw[o++] = c[2]; raw[o++] = c[3]; } }
+    const be = (v) => [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
+    const z = [0x78, 0x01];
+    for (let i = 0; ;) { const n = Math.min(65535, raw.length - i), last = i + n >= raw.length; z.push(last ? 1 : 0, n & 255, n >> 8, ~n & 255, (~n >> 8) & 255); for (let k = 0; k < n; k++) z.push(raw[i + k]); i += n; if (last) break; }
+    let a = 1, b = 0; for (let i = 0; i < raw.length; i++) { a = (a + raw[i]) % 65521; b = (b + a) % 65521; }
+    z.push(...be(((b << 16) | a) >>> 0));
+    const out = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    const chunk = (type, data) => { const t = [...type].map(c => c.charCodeAt(0)), td = new Uint8Array([...t, ...data]); out.push(...be(data.length), ...td, ...be(crc32(td))); };
+    chunk('IHDR', [...be(w), ...be(h), 8, 6, 0, 0, 0]);
+    chunk('IDAT', z);
+    chunk('IEND', []);
+    return new Uint8Array(out);
+  };
+  /* Symbolbild für Dateianhänge (OneNote verlangt eines, [MS-ONE] 2.2.34): Blatt mit Eselsohr, Farbband je Dateityp.
+   * 64 × 64 Pixel wie bei OneNote; eigene Zeichnung. */
+  const ICON_COLORS = [[/^(pdf)$/, [217, 48, 37]], [/^(docx?|odt|rtf|txt|md)$/, [43, 87, 154]], [/^(xlsx?|xlsm|csv|ods)$/, [33, 115, 70]],
+    [/^(pptx?|odp)$/, [210, 71, 38]], [/^(zip|rar|7z|gz|tar|cab|onepkg)$/, [138, 109, 59]], [/^(png|jpe?g|gif|bmp|tiff?|webp|svg|heic)$/, [123, 79, 160]],
+    [/^(mp3|wav|m4a|ogg|mp4|mov|avi|mkv|webm)$/, [15, 123, 138]]];
+  const fileIcon = (ext) => {
+    const e = String(ext || '').replace(/^\./, '').toLowerCase();
+    const band = (ICON_COLORS.find(([re]) => re.test(e)) || [0, [95, 107, 122]])[1];
+    const L = 12, R = 51, T = 4, B = 59, F = 14;   // Blatt und Eselsohr
+    return pngImage(64, 64, (x, y) => {
+      if (x < L || x > R || y < T || y > B) return [0, 0, 0, 0];
+      const dx = x - (R - F), dy = y - T;
+      if (dx > dy) return [0, 0, 0, 0];                                          // abgeschnittene Ecke
+      if (dx >= 0 && dy <= F && (dx === dy || dx === 0 || dy === F)) return [122, 122, 122, 255];   // Eselsohr-Kanten
+      if (dx > 0 && dy < F) return [228, 228, 228, 255];                          // Eselsohr-Fläche
+      if (x === L || x === R || y === T || y === B) return [122, 122, 122, 255];  // Rand
+      if (y >= 40 && y <= 52) return [...band, 255];                              // Farbband
+      if (x >= 18 && x <= 45 && [16, 22, 28, 34].includes(y) && !(y === 16 && x > R - F - 4)) return [170, 170, 170, 255];   // Textzeilen
+      return [255, 255, 255, 255];
+    });
+  };
+  /* Platzhalter für ein Bild ohne Daten (OneNote verlangt bei jedem Bild Bilddaten) */
+  const missingPicture = () => pngImage(8, 8, (x, y) => (x === 0 || y === 0 || x === 7 || y === 7) ? [190, 190, 190, 255] : [235, 235, 235, 255]);
+
   const colorRef = (hex) => { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || ''); return m ? new Uint8Array([parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16), 0]) : new Uint8Array([0, 0, 0, 0xFF]); };
 
   class Out {
@@ -25826,7 +25879,7 @@ const OneWrite = (() => {
   const FND = {
     OSMRoot: 0x004, OSMListRef: 0x008, OSMListStart: 0x00C, RevListRef: 0x010, RevListStart: 0x014, RevStart4: 0x01B, RevEnd: 0x01C, RevStart6: 0x01E,
     GidStart: 0x021, GidStart2: 0x022, GidEntry: 0x024, GidEnd: 0x028, DeclRef: 0x02D, RootRef2: 0x059, RootRef3: 0x05A,
-    DeclFile3: 0x072, FdsListRef: 0x090, FdsObjRef: 0x094, Decl2: 0x0A4, GroupListRef: 0x0B0, GroupStart: 0x0B4, GroupEnd: 0x0B8,
+    DeclFile3: 0x072, FdsListRef: 0x090, FdsObjRef: 0x094, Decl2: 0x0A4, GroupListRef: 0x0B0, GroupStart: 0x0B4, GroupEnd: 0x0B8, RevStart7: 0x01F,
     DataSig: 0x08C, RoDecl2: 0x0C4,
   };
   class FileBuilder {
@@ -25844,40 +25897,83 @@ const OneWrite = (() => {
       const base = ref ? ref.base : 0;
       const refLen = ref ? 8 : 0;
       const size = 4 + refLen + (body ? body.length : 0);
-      // StpFormat 1 (4 Byte), CbFormat 0 (4 Byte)
-      const h = (id & 0x3FF) | ((size & 0x1FFF) << 10) | ((ref ? 1 : 0) << 23) | (0 << 25) | ((base & 0xF) << 27);
+      if (size > 0x1FFF) throw new Error(`Dateiknoten 0x${id.toString(16)} zu gross (${size} Byte)`);
+      if (ref && ref.stp > 0xFFFFFFFE) throw new Error('OneNote-Abschnitt zu gross (über 4 GB)');
+      // [MS-ONESTORE] 2.4.3: StpFormat 1 (4 Byte), CbFormat 0 (4 Byte; bei BaseType 0 MUSS 0 sein),
+      // Bit 31 (Reserved) MUSS 1 sein – bis 1.20 fehlte es, OneNote lehnte die Abschnitte ab.
+      const h = (id & 0x3FF) | ((size & 0x1FFF) << 10) | (1 << 23) | (0 << 25) | ((base & 0xF) << 27) | 0x80000000;
       o.u32(h >>> 0);
       if (ref) { o.u32(ref.stp < 0 ? 0xFFFFFFFF : ref.stp); o.u32(ref.cb); }
       if (body) o.bytes(body);
       return o.done();
     }
+    /* ObjectInfoDependencyOverridesFND ([MS-ONESTORE] 2.5.20/2.6.10): MUSS in .one nach jeder Objektgruppe stehen.
+     * Ohne Überschreibungen; crc = Prüfsumme über die cRef aller Deklarationen davor (je 4 Byte), .one: CRC-32,
+     * .onetoc2: MsoCrc32. Verweis fcrNil (8 Byte), Daten direkt im Knoten – genau wie OneNote es schreibt. */
+    overrides(crefs) {
+      const b = new Uint8Array(crefs.length * 4), dv = new DataView(b.buffer);
+      crefs.forEach((c, i) => dv.setUint32(i * 4, c >>> 0, true));
+      const crc = this.legacy ? msoCrc32(b) : crc32(b);
+      const o = new Out(32);
+      const size = 4 + 9 + 12;
+      o.u32(((0x084) | (size << 10) | (0 << 23) | (2 << 25) | (1 << 27) | 0x80000000) >>> 0);
+      o.u32(0xFFFFFFFF).u32(0xFFFFFFFF).u8(0);   // ref = fcrNil (StpFormat 0: 8 Byte, CbFormat 2: 1 Byte)
+      o.u32(0).u32(0).u32(crc);                  // c8BitOverrides, c32BitOverrides, crc
+      return o.done();
+    }
+    /* Dateiknoten-Liste; lange Listen in Fragmente zu höchstens ~48 KB (OneNote selbst: bis ~58 KB je Fragment),
+     * verkettet über nextFragment, nFragmentSequence 0, 1, 2 … – gezählt wird im Transaktions-Log die ganze Liste */
     list(nodes) {
       const id = this.listId++;
-      const o = new Out(256);
-      o.u32(0xF5F7F4C4).u32(0xA4567AB1).u32(id).u32(0);
-      for (const n of nodes) o.bytes(n);
-      o.align(8);
-      o.u32(0xFFFFFFFF).u32(0xFFFFFFFF).u32(0); // nextFragment = fcrNil
-      o.u32(0x8233BA4B).u32(0x8BC215C3);
+      const MAX = 48 * 1024;
+      const parts = [];
+      let cur = [], size = 36;
+      for (const n of nodes) {
+        if (cur.length && size + n.length > MAX) { parts.push(cur); cur = []; size = 36; }
+        cur.push(n); size += n.length;
+      }
+      parts.push(cur);
+      const frags = parts.map((list, k) => {
+        const o = new Out(256);
+        o.u32(0xF5F7F4C4).u32(0xA4567AB1).u32(id).u32(k);
+        for (const n of list) o.bytes(n);
+        // nicht letztes Fragment: ChunkTerminatorFND (0x0FF) beendet die Knoten – sonst läse OneNote die Füllnullen
+        // als Knoten (so auch in echten Dateien; zählt nicht im Transaktions-Log)
+        if (k + 1 < parts.length) o.u32(0x0FF | (4 << 10) | 0x80000000);
+        o.align(8);
+        const at = o.n;
+        o.u32(0xFFFFFFFF).u32(0xFFFFFFFF).u32(0); // nextFragment = fcrNil (beim letzten)
+        o.u32(0x8233BA4B).u32(0x8BC215C3);
+        return { b: o.done(), at };
+      });
+      // Lage der Fragmente vorausberechnen (sie werden direkt hintereinander geschrieben, je 8-Byte-ausgerichtet)
+      this.out.align(8);
+      let pos = this.out.n;
+      const where = frags.map(f => { const p = pos; pos += f.b.length; pos += (8 - pos % 8) % 8; return p; });
+      frags.forEach((f, k) => {
+        if (k + 1 < frags.length) { const dv = new DataView(f.b.buffer, f.b.byteOffset); dv.setUint32(f.at, where[k + 1], true); dv.setUint32(f.at + 4, 0, true); dv.setUint32(f.at + 8, frags[k + 1].b.length, true); }
+      });
+      const first = frags.map(f => this.chunk(f.b))[0];
       this.counts.push([id, nodes.length]);
-      return this.chunk(o.done());
+      return first;
     }
     b(fn) { const o = new Out(64); fn(o); return o.done(); }
 
     /* ein Objektraum mit einer Revision */
-    space(sp, fileStore) {
+    /* Objekte einer Revision: GUID-Tabelle + Deklarationen (+ cRef-Liste für die Prüfsumme) */
+    decls(objs, roots) {
       const legacy = this.legacy;
-      // Objektdaten
       const guids = new Set();
-      for (const o of sp.objs) collectGuids(o, guids);
+      for (const o of objs) collectGuids(o, guids);
       const table = new Map([...guids].map((g, i) => [g, i]));
       const refCount = new Map();
-      for (const o of sp.objs) for (const r of refsOf(o)) refCount.set(r, (refCount.get(r) || 0) + 1);
-      for (const [, o] of sp.roots) refCount.set(o, (refCount.get(o) || 0) + 1);
+      for (const o of objs) for (const r of refsOf(o)) refCount.set(r, (refCount.get(r) || 0) + 1);
+      for (const [, o] of roots) refCount.set(o, (refCount.get(o) || 0) + 1);
       const cid = (x) => ((table.get(x.g) << 8) | x.n) >>> 0;
-      const decls = [];
-      for (const o of sp.objs) {
+      const decls = [], crefs = [];
+      for (const o of objs) {
         const cRef = Math.min(255, Math.max(1, refCount.get(o) || 1));
+        crefs.push(cRef);
         if (o.file) {
           decls.push(this.node(FND.DeclFile3, this.b(w => {
             w.u32(cid(o.oid)).u32(o.jcid).u8(cRef);
@@ -25907,21 +26003,39 @@ const OneWrite = (() => {
       tableNodes.push(legacy ? this.node(FND.GidStart, new Uint8Array([0])) : this.node(FND.GidStart2));
       for (const [g, i] of table) tableNodes.push(this.node(FND.GidEntry, this.b(w => w.u32(i).guid(g))));
       tableNodes.push(this.node(FND.GidEnd));
+      return { tableNodes, decls, crefs, cid };
+    }
+    /* eine Revision (.one): Objektgruppe, Überschreibungen, Wurzeln; ctx = Kontext (RevisionManifestStart7) */
+    revision(objs, roots, ctx) {
+      const d = this.decls(objs, roots);
       const sig = this.node(FND.DataSig, this.b(w => w.eg({ g: newGuid(), n: 1 })));
-      const rid = { g: newGuid(), n: 1 };
+      const rid = { g: newGuid(), n: 1 }, gid = { g: newGuid(), n: 1 };
+      const group = this.list([this.node(FND.GroupStart, this.b(w => w.eg(gid))), ...d.tableNodes, sig, ...d.decls, this.node(FND.GroupEnd)]);
+      const out = [ctx ? this.node(FND.RevStart7, this.b(w => w.eg(rid).eg(null).u32(1).u16(0).eg(ctx))) : this.node(FND.RevStart6, this.b(w => w.eg(rid).eg(null).u32(1).u16(0)))];
+      out.push(this.node(FND.GroupListRef, this.b(w => w.eg(gid)), { ...group, base: 2 }));
+      out.push(this.overrides(d.crefs));
+      for (const [role, o] of roots) out.push(this.node(FND.RootRef3, this.b(w => w.eg(o.oid).u32(role))));
+      out.push(this.node(FND.RevEnd));
+      return out;
+    }
+
+    /* ein Objektraum mit einer Revision (Seiten zusätzlich mit der Versionsverlauf-Revision im Kontext) */
+    space(sp, fileStore) {
+      const legacy = this.legacy;
       const rev = [this.node(FND.RevListStart, this.b(w => w.eg(sp.gosid).u32(0)))];
       if (legacy) {
+        const d = this.decls(sp.objs, sp.roots);
+        const sig = this.node(FND.DataSig, this.b(w => w.eg({ g: newGuid(), n: 1 })));
+        const rid = { g: newGuid(), n: 1 };
         rev.push(this.node(FND.RevStart4, this.b(w => w.eg(rid).eg(null).u64(BigInt(Date.now()) * 10000n + 116444736000000000n).u32(1).u16(0))));
-        rev.push(...tableNodes, sig, ...decls);
-        for (const [role, o] of sp.roots) rev.push(this.node(FND.RootRef2, this.b(w => w.u32(cid(o.oid)).u32(role))));
+        rev.push(...d.tableNodes, sig, ...d.decls);
+        rev.push(this.overrides(d.crefs));   // wie OneNote (in .onetoc2 erlaubt, nicht Pflicht)
+        for (const [role, o] of sp.roots) rev.push(this.node(FND.RootRef2, this.b(w => w.u32(d.cid(o.oid)).u32(role))));
+        rev.push(this.node(FND.RevEnd));
       } else {
-        const gid = { g: newGuid(), n: 1 };
-        const group = this.list([this.node(FND.GroupStart, this.b(w => w.eg(gid))), ...tableNodes, sig, ...decls, this.node(FND.GroupEnd)]);
-        rev.push(this.node(FND.RevStart6, this.b(w => w.eg(rid).eg(null).u32(1).u16(0))));
-        rev.push(this.node(FND.GroupListRef, this.b(w => w.eg(gid)), { ...group, base: 2 }));
-        for (const [role, o] of sp.roots) rev.push(this.node(FND.RootRef3, this.b(w => w.eg(o.oid).u32(role))));
+        rev.push(...this.revision(sp.objs, sp.roots, null));
+        for (const c of sp.contexts || []) rev.push(...this.revision(c.objs, c.roots, c.ctx));
       }
-      rev.push(this.node(FND.RevEnd));
       const revList = this.list(rev);
       const spList = this.list([this.node(FND.OSMListStart, this.b(w => w.eg(sp.gosid))), this.node(FND.RevListRef, null, { ...revList, base: 2 })]);
       void fileStore;
@@ -25952,9 +26066,13 @@ const OneWrite = (() => {
       if (fds) rootNodes.push(fds);
       const rootList = this.list(rootNodes);
       // Transaktions-Log: eine Transaktion mit allen Listen
+      // [MS-ONESTORE] 2.3.3.2: der Abschluss-Eintrag (srcID 1) trägt die Prüfsumme über ALLE Einträge davor
+      // (ohne ihn selbst – bis 1.20 floss sein srcID mit ein, OneNote verwarf darum die Transaktion);
+      // .one: CRC-32 (RFC 3309), .onetoc2: MsoCrc32
       const log = new Out(this.counts.length * 8 + 32);
       for (const [id, c] of this.counts) log.u32(id).u32(c);
-      log.u32(1).u32(crc32(log.done()));
+      const entries = log.done();
+      log.u32(1).u32(this.legacy ? msoCrc32(entries) : crc32(entries));
       log.u32(0).u32(0).u32(0); // nextFragment = fcrZero
       const txl = this.chunk(log.done());
       this.out.align(8);
@@ -26015,7 +26133,7 @@ const OneWrite = (() => {
     Hyperlink: 0x08001E14, Hidden: 0x08001E16, HyperlinkProtected: 0x08001E19, WzHyperlinkUrl: 0x1C001E20, ImageAltText: 0x1C001E58,
     MathFormatting: 0x08003401, ParagraphStyle: 0x2000342C, ParagraphSpaceBefore: 0x1400342E, ParagraphSpaceAfter: 0x1400342F,
     ParagraphLineSpacingExact: 0x14003430, ParagraphStyleId: 0x1C00345A, ParagraphAlignment: 0x0C003477, TextExtendedAscii: 0x1C003498,
-    PictureWidth: 0x140034CD, PictureHeight: 0x140034CE,
+    PictureWidth: 0x140034CD, PictureHeight: 0x140034CE, VersionHistoryGraphSpaceContextNodes: 0x3400347B,
     // Dateianhang (EmbeddedFileNode)
     EmbeddedFileContainer: 0x20001D9B, EmbeddedFileName: 0x1C001D9C, SourceFilepath: 0x1C001D9D,
     // Tabellen
@@ -26038,6 +26156,7 @@ const OneWrite = (() => {
     Author: 0x00120001, InkStrokeProperties: 0x00120048, ParagraphStyleObject: 0x0012004D, PictureContainer14: 0x00080039, TocEntry: 0x00020001,
     TableNode: 0x00060022, TableRowNode: 0x00060023, TableCellNode: 0x00060024,
     EmbeddedFileNode: 0x00060035, EmbeddedFileContainer: 0x00080036,
+    VersionHistoryContent: 0x0006003C, VersionHistoryMetaData: 0x00020046,
   };
   const HI = 48;                // px je halber Zoll
   const HIMETRIC = 2540 / 96;   // HIMETRIC je px
@@ -26121,8 +26240,10 @@ const OneWrite = (() => {
     const richText = (para, extra = []) => {
       // Hyperlinks als Feld: U+FDDF HYPERLINK "adresse" + angezeigter Text
       const runs = [];
-      for (const r of para.runs) {
-        if (!r.text) continue;
+      for (const r0 of para.runs) {
+        if (!r0.text) continue;
+        // Zeilenumbruch im Absatz = U+000B wie bei OneNote (LF ist in RichEditTextUnicode verboten, [MS-ONE] 2.2.20)
+        const r = /[\r\n]/.test(r0.text) ? { ...r0, text: r0.text.replace(/\r\n?|\n/g, '\u000B') } : r0;
         if (r.href) runs.push({ ...r, text: `﷟HYPERLINK "${r.href}"` });
         runs.push(r);
       }
@@ -26144,18 +26265,22 @@ const OneWrite = (() => {
       props.push([P.X080034DD, true]);
       return sp.add(J.RichTextOENode, props);
     };
+    // gleiche Bilddaten (Symbolbilder, Platzhalter) nur einmal im FileDataStore – wie OneNote
+    const shared = (key, make) => {
+      const m = files.shared || (files.shared = new Map());
+      if (!m.has(key)) { const g = newGuid(); files.push({ guid: g, data: make() }); m.set(key, g); }
+      return m.get(key);
+    };
+    const picture = (guid, ext) => { const pc = sp.add(J.PictureContainer14); pc.file = { ref: `<ifndf>${guid}`, ext }; return pc; };
     const imageNode = (im, pos) => {
-      const props = [[P.LastModifiedTime, T32]];
+      // [MS-ONE] 2.2.24: LanguageID und PictureContainer MÜSSEN gesetzt sein; Lage nur direkt auf der Seite
+      const props = [[P.LastModifiedTime, T32], [P.LanguageID, u32b(LANG)]];
       if (pos) props.push([P.OffsetFromParentHoriz, f32(im.x / HI)], [P.OffsetFromParentVert, f32(im.y / HI)]);
-      if (im.fileGuid) {
-        const pc = sp.add(J.PictureContainer14);
-        pc.file = { ref: `<ifndf>${im.fileGuid}`, ext: im.ext || '.png' };
-        props.push([P.PictureContainer, pc]);
-      }
+      props.push([P.PictureContainer, im.fileGuid ? picture(im.fileGuid, im.ext || '.png') : picture(shared('missing', missingPicture), '.png')]);
       props.push([P.LayoutMaxWidth, f32(im.w / HI)], [P.LayoutMaxHeight, f32(im.h / HI)], [P.PictureWidth, f32(im.w / HI)], [P.PictureHeight, f32(im.h / HI)]);
       if (im.name) props.push([P.ImageFilename, utf16z(im.name)]);
       if (im.alt) props.push([P.ImageAltText, utf16z(im.alt)]);
-      if (im.background) props.push([P.IsBackground, true]);   // KnowledgeTree-Hintergrund = OneNote „Bild als Hintergrund“
+      if (im.background && pos) props.push([P.IsBackground, true]);   // KnowledgeTree-Hintergrund = OneNote „Bild als Hintergrund“
       if (im.ocr) props.push([P.RichEditTextUnicode, utf16z(im.ocr)]);   // erkannter Bildtext (OCR) zurück an OneNote
       if (im.video) {
         // wie OneNote: Bild mit Kind-Objekt 0x00060058 (Adresse), Titel am Bild
@@ -26166,7 +26291,11 @@ const OneWrite = (() => {
       return sp.add(J.ImageNode, props);
     };
     // Dateianhang (verlustfrei, seit 1.13): EmbeddedFileNode → EmbeddedFileContainer mit den Bytes im FileDataStore
+    // [MS-ONE] 2.2.34: Symbolbild (PictureContainer), LanguageID und RichEditTextUnicode (ohne CR/LF) MÜSSEN gesetzt sein –
+    // Aufbau wie bei OneNote (64-px-Symbol, Name als Text, Ausrichtung 1 in einer Gliederung)
     const fileNode = (f, pos) => {
+      const name = String(f.name || 'Anhang').replace(/[\r\n]+/g, ' ');
+      const ext = f.ext || (/\.[^.\\/]+$/.exec(name) || [''])[0];
       const props = [[P.LastModifiedTime, T32]];
       if (pos) props.push([P.OffsetFromParentHoriz, f32((f.x || 0) / HI)], [P.OffsetFromParentVert, f32((f.y || 0) / HI)]);
       if (f.fileGuid) {
@@ -26174,7 +26303,10 @@ const OneWrite = (() => {
         ec.file = { ref: `<ifndf>${f.fileGuid}`, ext: f.ext || '' };
         props.push([P.EmbeddedFileContainer, ec]);
       }
-      props.push([P.EmbeddedFileName, utf16z(f.name || 'Anhang')], [P.SourceFilepath, utf16z(f.name || 'Anhang')]);
+      const icon = picture(shared('icon' + String(ext).toLowerCase(), () => fileIcon(ext)), '.png');
+      props.push([P.PictureWidth, f32(64 / HI)], [P.PictureHeight, f32(64 / HI)], [P.PictureContainer, icon],
+        [P.EmbeddedFileName, utf16z(name)], [P.RichEditTextUnicode, utf16z(name)], [P.SourceFilepath, utf16z(name)], [P.LanguageID, u32b(LANG)]);
+      if (!pos) props.push([P.LayoutAlignmentInParent, u32b(1)], [P.LayoutAlignmentSelf, u32b(1)]);
       return sp.add(J.EmbeddedFileNode, props);
     };
     const oe = (content, kids, extra = []) => {
@@ -26186,22 +26318,27 @@ const OneWrite = (() => {
     };
     const indents = new Uint8Array([4, 3, 0, 0, ...f32(0.5), ...f32(0), ...f32(0.75), ...f32(0.75)]);
     /* echte OneNote-Tabelle: t = { cols: [px], rows: [[{ paras: [...], shade }]], borders } */
+    // [MS-ONE] 2.2.22/2.3.x: 1–255 Spalten, mindestens eine Zeile, jede Zeile genau so viele Zellen wie Spalten,
+    // Spaltenbreite mindestens 1.0 (halbe Zoll = 48 px)
+    const COL_MIN = 48;
     const tableNode = (t) => {
-      const n = t.cols.length;
-      const rows = t.rows.map(row => sp.add(J.TableRowNode, [[P.LastModifiedTime, T32], [P.ElementChildNodes, row.map((cell, ci) => {
+      const n = Math.max(1, Math.min(255, (t.cols || []).length || Math.max(1, ...(t.rows || []).map(r => r.length))));
+      const cols = Array.from({ length: n }, (_, i) => (t.cols || [])[i] || 60);
+      const rowsIn = (t.rows && t.rows.length ? t.rows : [[]]).map(r => Array.from({ length: n }, (_, i) => r[i] || { paras: [] }));
+      const rows = rowsIn.map(row => sp.add(J.TableRowNode, [[P.LastModifiedTime, T32], [P.ElementChildNodes, row.map((cell, ci) => {
         const ps = cell.paras && cell.paras.length ? cell.paras : [{ runs: [] }];
         const props = [[P.LastModifiedTime, T32], [P.ElementChildNodes, ps.map(pp => oe(richText(pp)))], [P.EnforceOutlineStructure, true], [P.OutlineElementChildLevel, 1],
-          [P.LayoutMaxWidth, f32(Math.max(8, t.cols[ci] || 60) / HI)], [P.RgOutlineIndentDistance, indents]];
+          [P.LayoutMaxWidth, f32(Math.max(COL_MIN, cols[ci]) / HI)], [P.RgOutlineIndentDistance, indents]];
         if (cell.shade) props.push([P.CellShadingColor, colorRef(cell.shade)]);
         return sp.add(J.TableCellNode, props);
       })]]));
       const widths = new Uint8Array(1 + 4 * n);
       widths[0] = n;
-      t.cols.forEach((w, i) => widths.set(f32(Math.max(8, w) / HI), 1 + 4 * i));
+      cols.forEach((w, i) => widths.set(f32(Math.max(COL_MIN, w) / HI), 1 + 4 * i));
       const locked = new Uint8Array(1 + Math.ceil(n / 8));
       locked[0] = n;
       for (let i = 0; i < n; i++) locked[1 + (i >> 3)] |= 1 << (i % 8);   // Spaltenbreiten fest wie in KnowledgeTree
-      return sp.add(J.TableNode, [[P.LastModifiedTime, T32], [P.ElementChildNodes, rows], [P.RowCount, u32b(t.rows.length)], [P.ColumnCount, u32b(n)],
+      return sp.add(J.TableNode, [[P.LastModifiedTime, T32], [P.ElementChildNodes, rows], [P.RowCount, u32b(rows.length)], [P.ColumnCount, u32b(n)],
         [P.TableColumnsLocked, locked], [P.TableColumnWidths, widths], [P.TableBordersVisible, t.borders !== false]]);
     };
     // Titel
@@ -26228,6 +26365,7 @@ const OneWrite = (() => {
     ]);
     // Inhalte
     const elems = [];
+    const inkProps = new Map();
     for (const it of page.items) {
       if (it.kind === 'outline') {
         // flache Absätze mit Tiefe -> verschachtelte Elemente
@@ -26268,7 +26406,9 @@ const OneWrite = (() => {
           // wie OneNote: geglättet zeichnen (FitToCurve), ohne Druck-Kanal „Druck ignorieren“, Textmarker = Raster-Op 9
           const pprops = [[P.InkMetric, metric(withP)], [P.InkFitToCurve, true], ...(withP ? [] : [[P.InkIgnorePressure, true]]), [P.InkColor, colorRef(s.color || '#000000')], [P.InkWidth, f32(w)], [P.InkHeight, f32(w)]];
           if (s.marker) pprops.push([P.InkTip, 1], [P.InkRasterOp, 9]);
-          const pp = sp.add(J.InkStrokeProperties, pprops);
+          const pkey = JSON.stringify(pprops.map(([k, v]) => [k, v instanceof Uint8Array ? [...v] : v]));
+          let pp = inkProps.get(pkey);
+          if (!pp) { pp = sp.add(J.InkStrokeProperties, pprops); inkProps.set(pkey, pp); }
           strokes.push(sp.add(J.InkStroke, [[P.InkPath, isfPath(chans)], [P.InkLang, LANG], [P.InkX0C00341C, 0], [P.InkX0C003610, 0], [P.InkGuid, guidBytes(newGuid())], [P.InkTime, fileTime(s.t0 || now)], [P.InkProps, pp]]));
         }
         if (!strokes.length) continue;
@@ -26286,14 +26426,20 @@ const OneWrite = (() => {
       [P.EditRootRTL, false], [P.PageMarginOriginX, f32(1)], [P.PageMarginOriginY, f32(0.4)], [P.X14001D5C, u32b(26)], [P.X14003653, u32b(16)],
       [P.X1C001D5D, new Uint8Array([0])], [P.NotebookManagementEntityGuid, guidBytes(newGuid())],
     ]);
-    manifest.props.push([P.ContentChildNodes, [pageNode]]);
+    // Versionsverlauf der Seite: eigene Revision im Kontext (RevisionManifestStart7), wie OneNote sie bei jeder Seite
+    // anlegt – leerer Inhalt (0x6003C) + Metadaten (0x20046); die Seite verweist darauf über den Kontext.
+    // Kontext fest {7111497F-…}:1 – [MS-ONE] 2.1.18 schreibt ihn vor (auch in allen echten Dateien so)
+    const ctx = { g: VH_CONTEXT, n: 1 };
+    const vhContent = new Obj(null, J.VersionHistoryContent, []); vhContent.oid = { g: ctx.g, n: 2 };
+    const vhMeta = new Obj(null, J.VersionHistoryMetaData, [[P.SchemaRevisionInOrderToRead, u32b(40)], [P.X1400348B, u32b(40)]]); vhMeta.oid = { g: ctx.g, n: 3 };
+    sp.contexts = [{ ctx, objs: [vhContent, vhMeta], roots: [[1, vhContent], [2, vhMeta]] }];
+    manifest.props.push([P.VersionHistoryGraphSpaceContextNodes, [ctx]], [P.ContentChildNodes, [pageNode]]);
     sp.root(1, manifest); sp.root(2, meta); sp.root(4, revMeta);
-    void files;
     return sp;
   }
 
   /* Abschnitt: pages -> .one */
-  function buildSection(pages) {
+  function buildSection(pages, opts = {}) {
     const files = [];
     const pageSpaces = [];
     for (const pg of pages) {
@@ -26306,9 +26452,11 @@ const OneWrite = (() => {
     }
     const sec = new Space();
     const now = Date.now();
-    const series = sec.add(J.PageSeriesNode, [[P.ChildGraphSpaceElementNodes, pageSpaces.map(s => s.gosid)], [P.NotebookManagementEntityGuid, guidBytes(newGuid())], [P.TopologyCreationTimeStamp, fileTime(now)]]);
-    const node = sec.add(J.SectionNode, [[P.NotebookManagementEntityGuid, guidBytes(newGuid())], [P.TopologyCreationTimeStamp, fileTime(now)], [P.ElementChildNodes, [series]]]);
-    const meta = sec.add(J.SectionMetaData, [[P.SchemaRevisionInOrderToRead, u32b(40)], [P.X1400348B, u32b(40)]]);
+    // eine Seitenreihe braucht mindestens eine Seite ([MS-ONE] 2.3.19) – ein leerer Abschnitt hat gar keine
+    const series = pageSpaces.length ? [sec.add(J.PageSeriesNode, [[P.ChildGraphSpaceElementNodes, pageSpaces.map(s => s.gosid)], [P.NotebookManagementEntityGuid, guidBytes(newGuid())], [P.TopologyCreationTimeStamp, fileTime(now)]])] : [];
+    const node = sec.add(J.SectionNode, [[P.NotebookManagementEntityGuid, guidBytes(newGuid())], [P.TopologyCreationTimeStamp, fileTime(now)], ...(series.length ? [[P.ElementChildNodes, series]] : [])]);
+    // Abschnittsfarbe auch in den Metadaten (NotebookColor, wie OneNote beim Paket-Export)
+    const meta = sec.add(J.SectionMetaData, [[P.SchemaRevisionInOrderToRead, u32b(40)], [P.X1400348B, u32b(40)], ...(opts.color ? [[P.TocColor, colorRef(opts.color)]] : [])]);
     sec.root(1, node); sec.root(2, meta);
     const fb = new FileBuilder(false);
     return fb.finish(sec, [sec, ...pageSpaces], files, '{7B5C52E4-D88C-4DA7-AEB1-5378D02996D3}');
@@ -26777,7 +26925,7 @@ const OneWrite = (() => {
     const owner = new Map(), left = new Map();
     for (const g of sections) { left.set(g, g.pages.length); for (const pid of g.pages) owner.set(pid, g); }
     const models = new Map(), built = new Map();
-    const build = (g) => { built.set(g, buildSection(g.pages.map(pid => models.get(pid)).filter(Boolean))); for (const pid of g.pages) models.delete(pid); };
+    const build = (g) => { built.set(g, buildSection(g.pages.map(pid => models.get(pid)).filter(Boolean), { color: g.color })); for (const pid of g.pages) models.delete(pid); };
     await Export.renderEach(sections.flatMap(g => g.pages.map(pid => ({ pid }))), { set: (t, f) => progress('OneNote: ' + t, f * 0.9) }, async (page, pid) => {
       models.set(pid, await pageModel(page));
       const g = owner.get(pid);
@@ -26799,7 +26947,7 @@ const OneWrite = (() => {
     // sonst je Notizbuch ein Paket (.onepkg); einzelne Abschnitte oben (z. B. Schnellnotizen) als .one
     const out = [];
     for (const top of tree) {
-      if (top.kind === 'section' || top.kind === 'quick') { out.push({ name: safe(top.name) + '.one', data: section(top) || buildSection([]) }); continue; }
+      if (top.kind === 'section' || top.kind === 'quick') { out.push({ name: safe(top.name) + '.one', data: section(top) || buildSection([], { color: top.color }) }); continue; }
       const files = [];
       const folder = (g, path) => {
         const entries = [];
@@ -26807,7 +26955,7 @@ const OneWrite = (() => {
         const uniq = (n) => { let x = n, i = 2; while (used.has(x.toLowerCase())) x = `${n} (${i++})`; used.add(x.toLowerCase()); return x; };
         for (const c of g.groups) {
           if (c.kind === 'group' || c.kind === 'notebook') { const n = uniq(safe(c.name)); entries.push({ file: n }); folder(c, path + n + '\\'); }
-          else { const n = uniq(safe(c.name)); entries.push({ file: n + '.one', color: c.color || null }); files.push({ name: path + n + '.one', data: section(c) || buildSection([]) }); }
+          else { const n = uniq(safe(c.name)); entries.push({ file: n + '.one', color: c.color || null }); files.push({ name: path + n + '.one', data: section(c) || buildSection([], { color: c.color }) }); }
         }
         if (g.pages.length) { const n = uniq(safe(g.name)); entries.push({ file: n + '.one', color: g.color || null }); files.push({ name: path + n + '.one', data: section(g) }); }
         files.push({ name: path + 'Open Notebook.onetoc2', data: buildToc(entries, path ? null : (g.color || null)) });
