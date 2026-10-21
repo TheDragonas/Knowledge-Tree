@@ -1590,9 +1590,13 @@ function sanitizeHtml(html) {
   return doc.body.innerHTML;
 }
 
+/* Leer = kein sichtbarer Inhalt. Bilder, Anhänge, Formeln, Videos usw. sind Inhalt, auch ohne Text: bis 1.21 galt
+   ein Textfeld, das nur ein eingebettetes Bild enthielt (z.B. ein Bild in einer OneNote-Gliederung), als leer –
+   beim Speichern (cleanPage) und beim Laden fiel es weg, die Bilder waren nach dem Neuladen verschwunden. */
 function isEmptyHtml(html) {
   if (!html) return true;
-  if (/<(hr|table|li)\b/i.test(html)) return false;
+  if (/<(hr|table|li|img|svg|video|audio|iframe|object|embed|canvas|math)\b/i.test(html)) return false;
+  if (/\bdata-kt-|\bkt-(file|math|missing|video|chem|eq)\b/i.test(html)) return false;
   return htmlToText(html).replace(/\s+/g, '') === '';
 }
 
@@ -3743,7 +3747,7 @@ const Backend = (() => {
       try { persisted = navigator.storage && navigator.storage.persist ? await navigator.storage.persist() : false; } catch (e) { /* */ }
       return {
         session: myId, groups: groups || [], pages, zustand: zustand || null, verlauf: verlauf || null,
-        info: { version: '1.21', author: 'TheDragonas', persisted },
+        info: { version: '1.22', author: 'TheDragonas', persisted },
       };
     },
 
@@ -22228,19 +22232,26 @@ const Export = {
       else if (format === 'pdf') await this.toPdf(list, name, o, prog);
       else if (format === 'one') await this.toOneNote(tree, name, prog);
     } catch (e) {
-      console.error(e);
-      UI.toast('Export fehlgeschlagen: ' + e.message, 5000);
-    } finally { prog.close(); }
+      if (e && e.cancelled) UI.toast('Export abgebrochen', 3000);
+      else { console.error(e); UI.toast('Export fehlgeschlagen: ' + e.message, 5000); }
+    } finally { prog.close(); this.cancelled = false; }
   },
+  /* Fortschritt mit „Abbrechen“ (seit 1.22): setzt Export.cancelled – die Schleifen (renderEach, Bilder, PDF-Teile)
+     prüfen das über checkCancel() und brechen mit einem Fehler { cancelled: true } ab, ohne etwas herunterzuladen. */
+  cancelled: false,
+  checkCancel() { if (this.cancelled) throw Object.assign(new Error('Export abgebrochen'), { cancelled: true }); },
   progress(title) {
+    this.cancelled = false;
     const back = el('div', { class: 'dlg-back ex-busy' });
     const txt = el('div', { class: 'ex-busy-text', text: title });
     const bar = el('div', { class: 'ex-bar' }, el('i'));
-    back.append(el('div', { class: 'dlg' }, el('h2', { text: title }), txt, bar));
+    const stop = el('button', { class: 'btn', text: 'Abbrechen', onclick: () => { this.cancelled = true; stop.disabled = true; stop.textContent = 'Wird abgebrochen …'; } });
+    back.append(el('div', { class: 'dlg' }, el('h2', { text: title }), txt, bar, el('div', { class: 'dlg-btns' }, stop)));
     document.body.append(back);
     return {
       set(t, f) { txt.textContent = t; if (f != null) bar.firstChild.style.width = Math.round(f * 100) + '%'; },
       close() { back.remove(); },
+      hide(on) { back.style.display = on ? 'none' : ''; },
     };
   },
 
@@ -22287,6 +22298,7 @@ const Export = {
   async ktImages(parts, names, prog, get) {
     let first = true, i = 0;
     for (const n of names) {
+      this.checkCancel();
       if (prog) prog.set(`Bilder und Anhänge … (${++i}/${names.length})`, i / names.length);
       const b = get ? await get(n) : await this.assetBlob(n);
       if (!b) continue;
@@ -22306,6 +22318,7 @@ const Export = {
     try {
       let k = 0;
       for (const it of list) {
+        this.checkCancel();
         const page = Store.pages[it.pid];
         if (!page) continue;
         prog.set(`Seite ${++k} von ${list.length}: ${page.title || ''}`, (k - 1) / list.length);
@@ -22330,14 +22343,14 @@ const Export = {
     await this.renderEach(list, prog, async (page, pid, it) => { out.push({ pid, path: it.path, page, ...(await this.snapshot(page, cache, opts)) }); });
     return out;
   },
-  async waitImages(root) {
-    for (let t = 0; t < 40; t++) {
+  async waitImages(root, maxMs = 3000) {
+    for (let t0 = Date.now(); Date.now() - t0 < maxMs;) {
       const imgs = [...root.querySelectorAll('img')];
       if (imgs.every(i => i.getAttribute('src') && i.complete)) return;
       await new Promise(r => setTimeout(r, 75));
     }
   },
-  async snapshot(page, cache, opts) {
+  async snapshot(page, cache, opts = {}) {
     let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
     const add = (r) => { if (!r) return; x1 = Math.min(x1, r.x); y1 = Math.min(y1, r.y); x2 = Math.max(x2, r.x + r.w); y2 = Math.max(y2, r.y + r.h); };
     for (const r of Canvas.rects.values()) add(r);
@@ -22346,6 +22359,8 @@ const Export = {
     if (x1 === Infinity) { x1 = y1 = 0; x2 = 300; y2 = 100; }
     const M = 16;
     x1 = Math.floor(x1 - M); y1 = Math.floor(y1 - M); x2 = Math.ceil(x2 + M); y2 = Math.ceil(y2 + M);
+    // PDF: Blattaufteilung erst jetzt bekannt (Grösse der Seite) – opts.slices(W, H) → [[von, bis], …] in Seiten-px
+    const slices = typeof opts.slices === 'function' ? opts.slices(x2 - x1, y2 - y1) : null;
     // Kopie ohne Bildquellen anlegen (die Bilder sollen in der Kopie nicht noch einmal geladen werden)
     const live = $('#world');
     const srcs = [...live.querySelectorAll('img[src]')].map(i => [i, i.getAttribute('src')]);
@@ -22371,7 +22386,7 @@ const Export = {
         const im = b && f && b.images.find(q => q.id === f.dataset.img);
         name = im && im.src;
       }
-      const u = name ? await this.assetData(name, cache) : null;
+      const u = name ? (opts.urls ? await this.assetURL(name, opts.urls) : await this.assetData(name, cache)) : null;
       // nicht als src setzen: sonst lädt (und entschlüsselt) der Browser jedes Bild der Kopie und hält es im
       // Speicher – erst im fertigen Text einsetzen (1.18)
       img.removeAttribute('src');
@@ -22403,8 +22418,41 @@ const Export = {
       a.removeAttribute('data-kt-file');
     }
     for (const a of world.querySelectorAll('.box-text a[href]:not(.kt-file)')) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener'); }
-    const html = world.outerHTML.replace(/data-kt-emb="(\d+)"/g, (m, k) => `src="${emb[+k]}"`);
-    return { html, x1, y1, W: x2 - x1, H: y2 - y1 };
+    const fill = (h) => h.replace(/data-kt-emb="(\d+)"/g, (m, k) => `src="${emb[+k]}"`);
+    if (slices) return { parts: this.sliceWorld(world, page, slices, x1, y1).map(fill), slices, x1, y1, W: x2 - x1, H: y2 - y1 };
+    return { html: fill(world.outerHTML), x1, y1, W: x2 - x1, H: y2 - y1 };
+  },
+  /* PDF (seit 1.22): die Seite selbst in Blätter schneiden. Vorher teilte der Druck die lange Seite auf – dabei
+     schiebt Chrome Bilder und Textzeilen, die über einen Blattrand gingen, aufs nächste Blatt, die Freihand-Ebene
+     (ein SVG) aber nicht: von Blatt zu Blatt lagen Text, Bilder und Freihand weiter auseinander. Jetzt ist jedes Blatt
+     ein eigener Ausschnitt (überlaufend abgeschnitten) – alles bleibt genau übereinander, wie im Canvas.
+     Je Blatt bleiben nur Textfelder und Striche, die hineinragen (die Bilder kommen über Objekt-URLs, nicht doppelt). */
+  sliceWorld(world, page, slices, x1, y1) {
+    const rect = (id) => Canvas.rects && Canvas.rects.get(id);
+    const dbox = new Map();
+    for (const d of page.drawings) { try { const b = DG.bbox(d); const w = d.w || 2; dbox.set(d.id, { y: b.y - w, h: b.h + 2 * w }); } catch (e) { /* */ } }
+    return slices.map(([a, b]) => {
+      const lo = y1 + a - 4, hi = y1 + b + 4;
+      const w = world.cloneNode(true);
+      for (const bx of w.querySelectorAll('#layer-boxes > .box[data-id], .box[data-id]')) {
+        const r = rect(bx.dataset.id);
+        if (r && (r.y + r.h < lo || r.y > hi)) bx.remove();
+      }
+      for (const g of w.querySelectorAll('g[data-d]')) {
+        const r = dbox.get(g.getAttribute('data-d'));
+        if (r && (r.y + r.h < lo || r.y > hi)) g.remove();
+      }
+      w.style.transform = `translate(${-x1}px, ${-(y1 + a)}px)`;
+      return w.outerHTML;
+    });
+  },
+  /* Bild für den Druck als Objekt-URL (einmal je Bild, nach dem Drucken freigegeben) */
+  async assetURL(name, urls) {
+    if (urls.has(name)) return urls.get(name);
+    const b = await this.assetBlob(name);
+    const u = b ? URL.createObjectURL(b) : null;
+    urls.set(name, u);
+    return u;
   },
   pageBg(p, s, withLines) {
     const css = [`background-color:${p.color || '#ffffff'}`];
@@ -22522,33 +22570,69 @@ window.addEventListener('hashchange',show);show();})();
   async toPdf(list, name, o, prog) {
     const parts = await this.pdfParts(list);
     for (let k = 0; k < parts.length; k++) {
+      // zwischen den Teilen fragen – „Abbrechen“ im Druckdialog lässt sich nicht erkennen, und ohne Rückfrage
+      // ging gleich der nächste Druckdialog auf (wirkte wie ein Neustart)
+      if (k > 0) {
+        prog.hide(true);
+        const go = await UI.confirm(`Teil ${k} von ${parts.length} ist fertig`, `Weiter mit Teil ${k + 1} von ${parts.length} (je Teil ein eigenes PDF)?`, { ok: 'Weiter' });
+        prog.hide(false);
+        if (!go) { this.cancelled = true; this.checkCancel(); }
+      }
       const label = parts.length > 1 ? `${name} (Teil ${k + 1} von ${parts.length})` : name;
       await this.toPdfPart(parts[k], label, o, { set: (t, f) => prog.set((parts.length > 1 ? `Teil ${k + 1} von ${parts.length}: ` : '') + t, f) });
     }
     if (parts.length > 1) UI.toast(`${list.length} Seiten in ${parts.length} Teilen gedruckt (je Teil ein PDF)`, 5000);
   },
   async toPdfPart(list, name, o, prog) {
-    const snaps = await this.snapshots(list, prog);
-    prog.set('Druckansicht wird vorbereitet …', 1);
     const css = await this.appCss();
     const [pw, ph] = this.PAPER[o.paper] || this.PAPER['a4-hoch'];
-    const MARGIN = 12, PX = 96 / 25.4;
-    const availW = (pw - 2 * MARGIN) * PX, availH = (ph - 2 * MARGIN) * PX - (o.head ? 72 : 4);
-    const body = snaps.map(s => {
-      let z = 1;
-      if (o.fit === 'breite') z = Math.min(1, availW / s.W);
-      if (o.fit === 'blatt') z = Math.min(1, availW / s.W, availH / s.H);
-      return this.pageHtml(s, o, `zoom:${z.toFixed(4)}`);
-    }).join('\n');
-    const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${escapeHtml(name)}</title><style>${css}${this.EXPORT_CSS}
+    const MARGIN = 12, PX = 96 / 25.4, HEAD = 64;
+    // Blattmasse in CSS-px; etwas Luft, damit Chrome ein Blatt nie wegen Rundung auf zwei Blätter verteilt
+    const availW = Math.floor((pw - 2 * MARGIN) * PX) - 2, fullH = Math.floor((ph - 2 * MARGIN) * PX) - 6;
+    const urls = new Map();
+    const body = [];
+    try {
+      await this.renderEach(list, prog, async (page, pid, it) => {
+        let z = 1;
+        const slices = (W, H) => {
+          const first = fullH - (o.head ? HEAD : 0);
+          if (o.fit === 'breite') z = Math.min(1, availW / W);
+          if (o.fit === 'blatt') z = Math.min(1, availW / W, first / H);
+          const out = [];
+          for (let y = 0, k = 0; y < H - 0.5 || !out.length; k++) { const h = (k ? fullH : first) / z; out.push([y, Math.min(H, y + h)]); y += h; }
+          return out;
+        };
+        const s = await this.snapshot(page, null, { slices, urls, attachments: false });
+        body.push(this.pdfPageHtml({ pid, page, ...s }, o, z));
+      });
+      prog.set('Druckansicht wird vorbereitet …', 1);
+      const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${escapeHtml(name)}</title><style>${css}${this.EXPORT_CSS}
 @page{size:${pw}mm ${ph}mm;margin:${MARGIN}mm}
 body.kt-export{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.kt-head{padding:0 0 10px}.kt-head h1{font-size:22px}
+.kt-head{padding:0;height:${HEAD}px;box-sizing:border-box;overflow:hidden}.kt-head h1{font-size:22px}
 .kt-page{break-after:page}.kt-page:last-child{break-after:auto}
-.kt-sheet{display:block;min-width:0;width:max-content}
+.kt-slice{position:relative;overflow:hidden;break-inside:avoid;contain:strict}.kt-slice+.kt-slice{break-before:page}
+.kt-slice>.kt-wrap{position:absolute;left:0;top:0;transform-origin:0 0}
 .kt-world .box{box-shadow:none}
-</style></head><body class="kt-export" data-theme="hell">${body}</body></html>`;
-    await this.printHtml(html, name);
+</style></head><body class="kt-export" data-theme="hell">${body.join('\n')}</body></html>`;
+      body.length = 0;
+      await this.printHtml(html, name);
+    } finally {
+      setTimeout(() => { for (const u of urls.values()) if (u) URL.revokeObjectURL(u); }, 2000);
+    }
+  },
+  /* eine Seite als Folge von Blättern: Kopf (Titel, Datum) auf dem ersten, dann je Blatt ein Ausschnitt */
+  pdfPageHtml(s, o, z) {
+    const p = s.page;
+    const head = o.head ? `<header class="kt-head"><h1>${escapeHtml(p.title || 'Unbenannte Seite')}</h1><div class="kt-meta">${escapeHtml(fmtDate(p.created))}</div></header>` : '';
+    const W = s.W;
+    const sheets = s.parts.map((html, k) => {
+      const [a, b] = s.slices[k];
+      const bg = this.pageBg(p, { x1: s.x1, y1: s.y1 + a }, o.bg);
+      return `<div class="kt-slice" style="width:${(W * z).toFixed(2)}px;height:${((b - a) * z).toFixed(2)}px">` +
+        `<div class="kt-wrap" style="width:${W}px;height:${(b - a).toFixed(2)}px;transform:scale(${z.toFixed(5)});${bg}">${html}</div></div>`;
+    });
+    return `<section class="kt-page" id="s-${escapeHtml(s.pid)}" data-title="${escapeHtml(p.title || '')}">${head}${sheets.join('')}</section>`;
   },
   printHtml(html, name) {
     return new Promise((resolve) => {
@@ -22560,7 +22644,9 @@ body.kt-export{-webkit-print-color-adjust:exact;print-color-adjust:exact}
       ifr.addEventListener('load', async () => {
         const w = ifr.contentWindow;
         try { await w.document.fonts.ready; } catch (e) { /* */ }
-        await this.waitImages(w.document.body);
+        // alle Bilder geladen und entschlüsselt, bevor gedruckt wird (vorher höchstens 3 s → bei vielen Bildern fehlten welche)
+        await this.waitImages(w.document.body, 120000);
+        await Promise.all([...w.document.images].map(i => (i.decode ? i.decode().catch(() => {}) : null)));
         document.title = this.safe(name);
         w.addEventListener('afterprint', finish);
         w.focus();
@@ -24048,10 +24134,32 @@ const ON = (() => {
         (this.missing || (this.missing = [])).push({ kind: 'Bild', why, detail: lb.missing, external: lb.external || '', guid: lb.guid || '', page: ctx.page && ctx.page.title || '' });
         return { missing: true, why, external: lb.external || '', w, h, video, videoTitle, ocr, name, alt: this.s(props, P.ImageAltText), ...this.pos(props) };
       }
-      if (cands.length > imgs.length) this.note('Ausdrucke (Seitenbild statt Druckdokument übernommen)');
       const type = sniff(fb.data);
       if (type === 'image/x-wmf' || type === 'image/x-emf') this.note('Bilder im Format WMF/EMF (Browser können sie nicht anzeigen)');
-      return { data: fb.data, mime: type, ext: fb.ext || '', w, h, alt: this.s(props, P.ImageAltText), name, video, videoTitle, ocr, ...this.pos(props), background: !!props.get(P.IsBackground) };
+      const printout = this.printout(ctx, props, cands.filter(b => !isImg(b)));
+      if (printout) this.note('Ausdrucke (Seitenbild, Druckdokument und Quelldatei übernommen)');
+      return { data: fb.data, mime: type, ext: fb.ext || '', w, h, alt: this.s(props, P.ImageAltText), name, video, videoTitle, ocr, ...this.pos(props), background: !!props.get(P.IsBackground), ...(printout ? { printout } : {}) };
+    }
+    /* Ausdruck (seit 1.22 verlustfrei): zum Seitenbild gehören das Druckdokument (.xps, PictureContainer 0x8003A),
+     * die Quelldatei (z.B. .pdf, 0x200035C1 → Dateiobjekt 0x80060), Seitennummer und die Kennung des Ausdrucks.
+     * Bis 1.21 landeten Druckdokument und Quelldatei auf „Nicht zugeordnete Inhalte“. */
+    printout(ctx, props, others) {
+      const out = {};
+      const xps = others.find(b => b.data);
+      if (xps) { out.xps = { data: xps.data, ext: xps.ext || '.xps', guid: xps.guid || '' }; if (xps.guid) this.used.add(xps.guid); }
+      const srcRef = props.get(0x200035C1);
+      if (srcRef) {
+        const b = this.fileOf(ctx.view, srcRef);
+        if (b.data) { out.src = { data: b.data, ext: b.ext || '', guid: b.guid || '' }; if (b.guid) this.used.add(b.guid); }
+      }
+      const u32 = (id) => { const v = props.get(id); return v instanceof Uint8Array && v.length >= 4 ? V.u32(v) : null; };
+      const page = u32(P.DisplayedPageNumber), idx = u32(0x14001DF9), grp = props.get(0x1C001D84);
+      if (!out.xps && !out.src && page == null && !(grp instanceof Uint8Array)) return null;
+      if (page != null) out.page = page;
+      if (idx != null) out.idx = idx;
+      if (grp instanceof Uint8Array && grp.length === 16) out.group = [...grp].map(x => x.toString(16).padStart(2, '0')).join('');
+      if (props.get(0x08001D85) === true) out.flag = true;
+      return out;
     }
     file(ctx, o) {
       const props = this.store.props(o);
@@ -25129,6 +25237,26 @@ const OneImport = {
   },
 
   /* ---------------------------------------------------------- Seite umwandeln */
+  /* Ausdruck (seit 1.22): Druckdokument (.xps) und Quelldatei (z.B. .pdf) je Datei nur einmal speichern und am Bild
+     vermerken – so gehen sie nicht mehr auf „Nicht zugeordnete Inhalte“ und kommen beim OneNote-Export zurück. */
+  async printInfo(pr, stats) {
+    const cache = stats._printCache || (stats._printCache = new Map());
+    const MIME = { '.pdf': 'application/pdf', '.xps': 'application/vnd.ms-xpsdocument', '.oxps': 'application/oxps' };
+    const save = (f, def) => {
+      if (!f || !f.data) return Promise.resolve(null);
+      const ext = (f.ext || def).toLowerCase();
+      const key = (f.guid || '') + ':' + f.data.length + ':' + ext;
+      if (!cache.has(key)) cache.set(key, this.saveBlob(f.data, MIME[ext] || 'application/octet-stream', ext.replace('.', ''), false).catch(() => null));
+      return cache.get(key);
+    };
+    const out = {};
+    const x = await save(pr.xps, '.xps');
+    if (x) out.xps = x;
+    const s = await save(pr.src, '.pdf');
+    if (s) { out.src = s; out.srcExt = (pr.src.ext || '').toLowerCase(); }
+    for (const k of ['page', 'idx', 'group', 'flag']) if (pr[k] !== undefined) out[k] = pr[k];
+    return out;
+  },
   async saveBlob(data, type, ext, isImage) {
     const blob = new Blob([data], { type: type || 'application/octet-stream' });
     if (isImage && /^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(type)) return Backend.saveImage(blob);
@@ -25224,6 +25352,7 @@ const OneImport = {
         if (/^image\/(png|jpeg|gif|webp|bmp|svg\+xml)$/.test(it.mime)) {
           const img = { id: uid('i'), src: name, x: 0, y: 0, w, h };
           if (it.ocr) img.ocr = it.ocr;   // von OneNote erkannter Bildtext (Suche)
+          if (it.printout) img.print = await this.printInfo(it.printout, stats);   // Ausdruck: Druckdokument + Quelldatei (1.22)
           if (it.video) { img.video = it.video; if (it.videoTitle) img.title = it.videoTitle; stats.videos = (stats.videos || 0) + 1; }
           p.boxes.push({ id: uid('b'), x: x - pad, y: y - BAR - BORDER, w: w + 2 * pad, html: '', images: [img], z: it.background ? 1 : z++, style: { ...onStyle }, locked: false, pkg: null, ...(it.background ? { bg: true } : {}) });   // OneNote „Bild als Hintergrund“ → Hintergrund (1.10)
         } else {
@@ -25412,6 +25541,7 @@ const OneImport = {
         return this.fileChip(fn, fname);
       }
       const name = await this.saveBlob(c.data, c.mime, (c.ext || '').replace('.', ''), true).catch(() => null);
+      if (name && c.printout) c._print = await this.printInfo(c.printout, stats);
       return name ? this.imgHtml(name, c, ctx, stats) : '';
     }
     if (c.type === 'file') {
@@ -25446,7 +25576,7 @@ const OneImport = {
     const w = Math.round(c.w || 0), h = Math.round(c.h || 0);
     ctx.maxImg = Math.max(ctx.maxImg, w);
     const css = w ? `width:${w}px${h ? `;height:${h}px` : ''}` : '';
-    const img = `<img data-kt-src="${escapeHtml(name)}" alt="${escapeHtml(c.alt || '')}"${c.ocr ? ` data-ocr="${escapeHtml(c.ocr)}"` : ''}${css ? ` style="${css}"` : ''}>`;
+    const img = `<img data-kt-src="${escapeHtml(name)}" alt="${escapeHtml(c.alt || '')}"${c.ocr ? ` data-ocr="${escapeHtml(c.ocr)}"` : ''}${c._print ? ` data-kt-print="${escapeHtml(JSON.stringify(c._print))}"` : ''}${css ? ` style="${css}"` : ''}>`;
     if (c.video) { stats.videos = (stats.videos || 0) + 1; return `<div>${Video.wrapHtml(img, c.video, c.videoTitle)}</div>`; }
     return `<div>${img}</div>`;
   },
@@ -25835,14 +25965,18 @@ const OneWrite = (() => {
     };
     writeSet(props);
     const o = new Out(body.n + 64);
-    const hasOsid = osids.length > 0 || ctxs.length > 0;
-    o.u32((oids.length & 0xFFFFFF) | (hasOsid ? 0 : 0x80000000));
+    // Strom-Köpfe ([MS-ONESTORE] 2.6.2–2.6.4): OsidStreamNotPresent im OID-Kopf, wenn weder OSIDs noch Kontexte;
+    // ExtendedStreamsPresent im OID- UND im OSID-Kopf, wenn Kontexte folgen (fehlte bis 1.21 im OID-Kopf – OneNote las
+    // darum den PageManifestNode jeder Seite falsch: „Seite kann nicht geöffnet werden“)
+    const hasOsid = osids.length > 0 || ctxs.length > 0, ext = ctxs.length ? 0x40000000 : 0;
+    o.u32((oids.length & 0xFFFFFF) | (hasOsid ? 0 : 0x80000000) | ext);
     for (const c of oids) o.u32(c);
-    if (hasOsid) { o.u32((osids.length & 0xFFFFFF) | (ctxs.length ? 0x40000000 : 0)); for (const c of osids) o.u32(c); }
+    if (hasOsid) { o.u32((osids.length & 0xFFFFFF) | ext); for (const c of osids) o.u32(c); }
     if (ctxs.length) { o.u32(ctxs.length & 0xFFFFFF); for (const c of ctxs) o.u32(c); }
     o.bytes(body.done());
     o.align(8);
-    return { data: o.done(), hasOids: oids.length > 0, hasOsids: osids.length > 0 };
+    // fHasOsidReferences: der OSID-Strom ist da (auch wenn nur Kontexte folgen – so setzt es OneNote)
+    return { data: o.done(), hasOids: oids.length > 0, hasOsids: hasOsid };
   }
   /* alle GUIDs, die ein Objekt braucht */
   function collectGuids(obj, set) {
@@ -26009,7 +26143,7 @@ const OneWrite = (() => {
     revision(objs, roots, ctx) {
       const d = this.decls(objs, roots);
       const sig = this.node(FND.DataSig, this.b(w => w.eg({ g: newGuid(), n: 1 })));
-      const rid = { g: newGuid(), n: 1 }, gid = { g: newGuid(), n: 1 };
+      const rid = { g: newGuid(), n: 1 }, gid = { g: newGuid(), n: 0 };   // Gruppen-ID mit n = 0 wie bei OneNote
       const group = this.list([this.node(FND.GroupStart, this.b(w => w.eg(gid))), ...d.tableNodes, sig, ...d.decls, this.node(FND.GroupEnd)]);
       const out = [ctx ? this.node(FND.RevStart7, this.b(w => w.eg(rid).eg(null).u32(1).u16(0).eg(ctx))) : this.node(FND.RevStart6, this.b(w => w.eg(rid).eg(null).u32(1).u16(0)))];
       out.push(this.node(FND.GroupListRef, this.b(w => w.eg(gid)), { ...group, base: 2 }));
@@ -26134,6 +26268,9 @@ const OneWrite = (() => {
     MathFormatting: 0x08003401, ParagraphStyle: 0x2000342C, ParagraphSpaceBefore: 0x1400342E, ParagraphSpaceAfter: 0x1400342F,
     ParagraphLineSpacingExact: 0x14003430, ParagraphStyleId: 0x1C00345A, ParagraphAlignment: 0x0C003477, TextExtendedAscii: 0x1C003498,
     PictureWidth: 0x140034CD, PictureHeight: 0x140034CE, VersionHistoryGraphSpaceContextNodes: 0x3400347B,
+    // Ausdruck (1.22, wie in den echten Dateien des Users): Seitenbild + Druckdokument + Quelldatei
+    WebPictureContainer14: 0x200034C8, DisplayedPageNumber: 0x14003480, PrintPageIndex: 0x14001DF9, PrintGroup: 0x1C001D84,
+    IsPrintout: 0x08001D85, PrintSource: 0x200035C1,
     // Dateianhang (EmbeddedFileNode)
     EmbeddedFileContainer: 0x20001D9B, EmbeddedFileName: 0x1C001D9C, SourceFilepath: 0x1C001D9D,
     // Tabellen
@@ -26155,7 +26292,7 @@ const OneWrite = (() => {
     PageMetaData: 0x00020030, SectionMetaData: 0x00020031, InkData: 0x0002003B, RevisionMetaData: 0x00020044, InkStroke: 0x00020047,
     Author: 0x00120001, InkStrokeProperties: 0x00120048, ParagraphStyleObject: 0x0012004D, PictureContainer14: 0x00080039, TocEntry: 0x00020001,
     TableNode: 0x00060022, TableRowNode: 0x00060023, TableCellNode: 0x00060024,
-    EmbeddedFileNode: 0x00060035, EmbeddedFileContainer: 0x00080036,
+    EmbeddedFileNode: 0x00060035, EmbeddedFileContainer: 0x00080036, XpsContainer: 0x0008003A, PrintSourceFile: 0x00080060,
     VersionHistoryContent: 0x0006003C, VersionHistoryMetaData: 0x00020046,
   };
   const HI = 48;                // px je halber Zoll
@@ -26276,12 +26413,27 @@ const OneWrite = (() => {
       // [MS-ONE] 2.2.24: LanguageID und PictureContainer MÜSSEN gesetzt sein; Lage nur direkt auf der Seite
       const props = [[P.LastModifiedTime, T32], [P.LanguageID, u32b(LANG)]];
       if (pos) props.push([P.OffsetFromParentHoriz, f32(im.x / HI)], [P.OffsetFromParentVert, f32(im.y / HI)]);
-      props.push([P.PictureContainer, im.fileGuid ? picture(im.fileGuid, im.ext || '.png') : picture(shared('missing', missingPicture), '.png')]);
+      const pr = im.print && (im.print.xpsGuid || im.print.srcGuid || im.print.page != null) ? im.print : null;
+      if (pr) {
+        // Ausdruck wie OneNote: Seitennummer, Kennung, Quelldatei (0x80060); das Druckdokument (.xps) steht im
+        // PictureContainer, das Seitenbild dann im WebPictureContainer14
+        if (pr.idx != null) props.push([P.PrintPageIndex, u32b(pr.idx)]);
+        if (pr.page != null) props.push([P.DisplayedPageNumber, u32b(pr.page)]);
+        if (/^[0-9a-f]{32}$/.test(pr.group || '')) props.push([P.PrintGroup, new Uint8Array(pr.group.match(/../g).map(x => parseInt(x, 16)))]);
+        props.push([P.IsPrintout, true]);
+        if (pr.srcGuid) { const so = sp.add(J.PrintSourceFile); so.file = { ref: `<ifndf>${pr.srcGuid}`, ext: pr.srcExt || '.pdf' }; props.push([P.PrintSource, so]); }
+      }
+      const main = im.fileGuid ? picture(im.fileGuid, im.ext || '.png') : picture(shared('missing', missingPicture), '.png');
+      if (pr && pr.xpsGuid) {
+        const xo = sp.add(J.XpsContainer); xo.file = { ref: `<ifndf>${pr.xpsGuid}`, ext: '.xps' };
+        props.push([P.PictureContainer, xo]);
+      } else props.push([P.PictureContainer, main]);
       props.push([P.LayoutMaxWidth, f32(im.w / HI)], [P.LayoutMaxHeight, f32(im.h / HI)], [P.PictureWidth, f32(im.w / HI)], [P.PictureHeight, f32(im.h / HI)]);
       if (im.name) props.push([P.ImageFilename, utf16z(im.name)]);
       if (im.alt) props.push([P.ImageAltText, utf16z(im.alt)]);
       if (im.background && pos) props.push([P.IsBackground, true]);   // KnowledgeTree-Hintergrund = OneNote „Bild als Hintergrund“
       if (im.ocr) props.push([P.RichEditTextUnicode, utf16z(im.ocr)]);   // erkannter Bildtext (OCR) zurück an OneNote
+      if (pr && pr.xpsGuid) props.push([P.WebPictureContainer14, main]);
       if (im.video) {
         // wie OneNote: Bild mit Kind-Objekt 0x00060058 (Adresse), Titel am Bild
         if (im.title) props.push([0x1C00360A, utf16z(im.title)]);
@@ -26441,12 +26593,25 @@ const OneWrite = (() => {
   /* Abschnitt: pages -> .one */
   function buildSection(pages, opts = {}) {
     const files = [];
+    const byKey = new Map();   // KnowledgeTree-Name → GUID im FileDataStore (jede Datei nur einmal je Abschnitt)
+    const fileGuid = (key, data) => {
+      if (key && byKey.has(key)) return byKey.get(key);
+      const g = newGuid();
+      files.push({ guid: g, data });
+      if (key) byKey.set(key, g);
+      return g;
+    };
     const pageSpaces = [];
     for (const pg of pages) {
       for (const it of pg.items) {
         const imgs = it.kind === 'image' || it.kind === 'file' ? [it] : it.kind === 'outline' ? it.paras.filter(p => p.image || p.file).map(p => p.image || p.file) : [];
         if (it.kind === 'outline') for (const pp of it.paras) if (pp.table) for (const row of pp.table.rows) for (const cell of row) for (const cp of cell.paras || []) if (cp.image) imgs.push(cp.image);
-        for (const im of imgs) if (im.data && !im.fileGuid) { im.fileGuid = newGuid(); files.push({ guid: im.fileGuid, data: im.data }); }
+        for (const im of imgs) {
+          if (im.data && !im.fileGuid) im.fileGuid = fileGuid(im.key, im.data);
+          // Ausdruck: Druckdokument und Quelldatei – gleiche Dateien (z.B. eine PDF für 13 Seitenbilder) nur einmal
+          if (im.print && im.print.xps && !im.print.xpsGuid) im.print.xpsGuid = fileGuid(im.print.xpsKey, im.print.xps);
+          if (im.print && im.print.src && !im.print.srcGuid) im.print.srcGuid = fileGuid(im.print.srcKey, im.print.src);
+        }
       }
       pageSpaces.push(buildPage(pg, files));
     }
@@ -26553,7 +26718,7 @@ const OneWrite = (() => {
   }
   async function fileBytes(name) { return storedBlob(name); }
   async function imageBytes(name) {
-    let blob = await storedBlob(name);
+    let blob = await storedBlob(name), converted = false;
     if (!blob) return null;
     let type = blob.type || '';
     if (!/^image\/(png|jpeg|gif|bmp)$/.test(type)) {
@@ -26574,10 +26739,19 @@ const OneWrite = (() => {
         g.drawImage(src, 0, 0, w, h);
         blob = await new Promise(res => c.toBlob(res, 'image/png'));
         type = 'image/png';
+        converted = true;
       } catch (e) { return null; }
     }
     const ext = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif', 'image/bmp': '.bmp' }[type] || '.png';
-    return { data: blob, ext };   // Blob: wird beim Schreiben nur als Teil vermerkt
+    return { data: blob, ext, converted };   // Blob: wird beim Schreiben nur als Teil vermerkt
+  }
+  /* Ausdruck (1.22): Druckdokument und Quelldatei aus dem Speicher holen (beim Import am Bild vermerkt) */
+  async function printBytes(pr) {
+    if (!pr || typeof pr !== 'object') return null;
+    const out = { page: pr.page, idx: pr.idx, group: pr.group, srcExt: pr.srcExt ? (pr.srcExt.startsWith('.') ? pr.srcExt : '.' + pr.srcExt) : '' };
+    if (pr.xps) { const b = await storedBlob(pr.xps); if (b) { out.xps = b; out.xpsKey = pr.xps; } }
+    if (pr.src) { const b = await storedBlob(pr.src); if (b) { out.src = b; out.srcKey = pr.src; if (!out.srcExt) out.srcExt = '.' + String(pr.src).split('.').pop(); } }
+    return out;
   }
 
   /* ---- Tabellen und Diagramme (1.8): sichtbar wie in KnowledgeTree, Formeln/Formate versteckt im Alternativtext
@@ -26745,7 +26919,9 @@ const OneWrite = (() => {
             if (cur && !cur.runs.length) cur = null; else flush();
             const r = n.getBoundingClientRect(), z = Canvas.view.z || 1;
             const vw = n.closest('.kt-video');
-            paras.push({ depth: d0, image: { ...im, w: Math.max(4, r.width / z), h: Math.max(4, r.height / z), alt: n.alt || '', ...(n.dataset.ocr ? { ocr: n.dataset.ocr } : {}), ...(vw ? { video: vw.dataset.video, title: vw.dataset.title || '' } : {}) } });
+            let pr = null;
+            try { pr = n.dataset.ktPrint ? await printBytes(JSON.parse(n.dataset.ktPrint)) : null; } catch (e) { pr = null; }
+            paras.push({ depth: d0, image: { ...im, key: im.converted ? null : name, w: Math.max(4, r.width / z), h: Math.max(4, r.height / z), alt: n.alt || '', ...(n.dataset.ocr ? { ocr: n.dataset.ocr } : {}), ...(vw ? { video: vw.dataset.video, title: vw.dataset.title || '' } : {}), ...(pr ? { print: pr } : {}) } });
           }
           continue;
         }
@@ -26883,7 +27059,7 @@ const OneWrite = (() => {
         const data = im && await imageBytes(im.src);
         if (!data) continue;
         const fr = W(f.getBoundingClientRect());
-        items.push({ kind: 'image', x: fr.x, y: fr.y, w: fr.w, h: fr.h, ...data, ...(im.video ? { video: im.video, title: im.title || '' } : {}), ...(im.ocr ? { ocr: im.ocr } : {}), ...(b.bg && Canvas.isPictureBox(b) ? { background: true } : {}) });
+        items.push({ kind: 'image', x: fr.x, y: fr.y, w: fr.w, h: fr.h, ...data, key: data.converted ? null : im.src, ...(im.video ? { video: im.video, title: im.title || '' } : {}), ...(im.ocr ? { ocr: im.ocr } : {}), ...(b.bg && Canvas.isPictureBox(b) ? { background: true } : {}), ...(im.print ? { print: await printBytes(im.print) } : {}) });
       }
     }
     // Zeichnungen
