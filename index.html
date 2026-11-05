@@ -2261,7 +2261,7 @@ for(const b of data.bilder)assets.set(b.name,await b.blob());
 window.addEventListener('beforeunload',(e)=>{if(be.dirty||(typeof Save!=='undefined'&&Save.hasWork())){e.preventDefault();e.returnValue='';}});
 return{
 session:be.session,groups:data.gruppen,pages:data.seiten,zustand:null,verlauf:null,
-info:{version:'1.40',author:'TheDragonas',datei:{name,erstellt:block.dataset.erstellt||data.erstellt},
+info:{version:'1.41',author:'TheDragonas',datei:{name,erstellt:block.dataset.erstellt||data.erstellt},
 warnung:`Interaktive KnowledgeTree-Datei „${name}“: Änderungen bleiben nur in diesem Fenster, bis du sie mit Datei → Datei speichern als neue Datei herunterlädst. In dein KnowledgeTree übernehmen: dort Datei → Importieren.`},
 };
 },
@@ -2411,7 +2411,7 @@ let persisted=false;
 try{persisted=navigator.storage&&navigator.storage.persist?await navigator.storage.persist():false;}catch(e){}
 return{
 session:myId,groups:groups||[],pages,pageIds:st?[...pageIds(groups,new Set(Object.keys(meta)))]:undefined,meta,zustand:zustand||null,verlauf:st?undefined:verlauf||null,
-info:{version:'1.40',author:'TheDragonas',persisted},
+info:{version:'1.41',author:'TheDragonas',persisted},
 };
 },
 async loadVerlauf(){return(await req(db.transaction(['cache'],'readonly').objectStore('cache').get('verlauf')))||null;},
@@ -4646,6 +4646,9 @@ if(e.target.closest&&e.target.closest('#ribbon, .popup, .dlg-back'))return;
 this.peek(false);
 if(e.target.closest&&e.target.closest('#viewport')){e.stopPropagation();e.preventDefault();}
 },true);
+const rib=$('#ribbon');
+rib.addEventListener('pointerleave',(e)=>{if(e.pointerType!=='touch')this.peekLeaveSoon();});
+rib.addEventListener('pointerenter',()=>{clearTimeout(this._peekT);this._peekT=null;});
 this.initLongPress();
 const panel=$('#panel');
 this.fadePanel=()=>{
@@ -4758,7 +4761,7 @@ document.body.classList.toggle('rb-min',min);
 if(!min)document.body.classList.remove('rb-peek');
 const b=$('#rb-pin');
 const fs=document.body.classList.contains('fullscreen');
-if(b){b.innerHTML=icon(min&&!fs?'chevDown':'chevUp',12);b.title=fs?'Menüband ausblenden (wieder einblenden mit dem Pfeilchen oben)':min?'Menüband aufklappen (Strg+F1)':'Menüband einklappen (Strg+F1) – wieder aufklappen mit diesem Pfeilchen';}
+if(b){b.innerHTML=icon(min&&!fs?'chevDown':'chevUp',12);b.title=fs?'Menüband ausblenden (wieder einblenden mit dem Pfeilchen oben)':min?'Menüband aufklappen (Strg+F1)':'Menüband einklappen (Strg+F1) – ein Register anklicken klappt es kurz herunter, dieses Pfeilchen wieder dauerhaft auf';}
 },
 toggleRibbon(){
 Store.ui.ribbonMin=!this.ribbonMin();
@@ -4767,8 +4770,20 @@ this.applyRibbon();
 if(typeof Canvas!=='undefined')Canvas.scrollSoon&&Canvas.scrollSoon();
 },
 peek(on){
+clearTimeout(this._peekT);this._peekT=null;
 document.body.classList.toggle('rb-peek',!!on&&this.ribbonMin());
 if(on&&this.fadePanel)requestAnimationFrame(this.fadePanel);
+},
+peekLeaveSoon(){
+if(this._peekT||!document.body.classList.contains('rb-peek'))return;
+this._peekT=setTimeout(()=>{
+this._peekT=null;
+const rib=$('#ribbon');
+if(!document.body.classList.contains('rb-peek'))return;
+if((UI.popupOpen&&UI.popupOpen())||(rib&&rib.contains(document.activeElement)&&document.activeElement.matches('input, select, textarea'))){this.peekLeaveSoon();return;}
+if(rib&&rib.matches(':hover'))return;
+this.peek(false);
+},400);
 },
 keepCaretVisible(){
 if(typeof Canvas==='undefined'||!Canvas.editing)return;
@@ -28387,7 +28402,12 @@ b.dataset.tab=t.id;
 b.addEventListener('mousedown',e=>e.preventDefault());
 b.addEventListener('click',()=>{
 if(t.id==='datei'){if(document.body.classList.contains('rb-peek'))Layout.peek(false);Backstage.open();return;}
-if(document.body.classList.contains('rb-peek')){if(this.tab===t.id){Layout.peek(false);return;}}
+if(document.body.classList.contains('rb-min')&&!document.body.classList.contains('fullscreen')){
+if(document.body.classList.contains('rb-peek')&&this.tab===t.id){Layout.peek(false);return;}
+this.show(t.id);
+Layout.peek(true);
+return;
+}
 this.show(t.id);
 });
 b.addEventListener('dblclick',()=>{if(!Layout.ribbonMin()&&!document.body.classList.contains('fullscreen'))Layout.toggleRibbon();});
@@ -31126,7 +31146,7 @@ const rows=[
 ['Seite in der Liste nach rechts ziehen','zur Unterseite machen'],
 ['Alt + ← / Alt + →','zurück / vor (zuletzt besuchte Seiten)'],
 ['F11','Vollbild: alle offenen Tabs als Kacheln, ⤢ oben rechts = nur dieser Tab, ⤡ = zurück (Pfeilchen oben links bzw. Strg+F1 = Menüband ein-/ausblenden)'],
-['Strg + F1 / Doppelklick auf ein Register','Menüband ein-/ausklappen (aufklappen: Strg+F1 oder das Pfeilchen rechts neben den Registern)'],
+['Strg + F1 / Doppelklick auf ein Register','Menüband ein-/ausklappen (eingeklappt: Register anklicken = herunterklappen, bis die Maus es verlässt; dauerhaft: Pfeilchen rechts)'],
 ['F2 / Doppelklick auf den Tab','Seite umbenennen'],
 ['h','Tabs und geteilte Bereiche'],
 ['Mittelklick auf eine Seite in der Liste','in neuem Tab öffnen (Rechtsklick: auch rechts daneben / unten)'],
