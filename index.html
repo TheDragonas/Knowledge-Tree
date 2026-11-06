@@ -2263,7 +2263,7 @@ for(const b of data.bilder)assets.set(b.name,await b.blob());
 window.addEventListener('beforeunload',(e)=>{if(be.dirty||(typeof Save!=='undefined'&&Save.hasWork())){e.preventDefault();e.returnValue='';}});
 return{
 session:be.session,groups:data.gruppen,pages:data.seiten,zustand:null,verlauf:null,
-info:{version:'1.46',author:'TheDragonas',datei:{name,erstellt:block.dataset.erstellt||data.erstellt},
+info:{version:'1.48',author:'TheDragonas',datei:{name,erstellt:block.dataset.erstellt||data.erstellt},
 warnung:`Interaktive KnowledgeTree-Datei „${name}“: Änderungen bleiben nur in diesem Fenster, bis du sie mit Datei → Datei speichern als neue Datei herunterlädst. In dein KnowledgeTree übernehmen: dort Datei → Importieren.`},
 };
 },
@@ -2413,7 +2413,7 @@ let persisted=false;
 try{persisted=navigator.storage&&navigator.storage.persist?await navigator.storage.persist():false;}catch(e){}
 return{
 session:myId,groups:groups||[],pages,pageIds:st?[...pageIds(groups,new Set(Object.keys(meta)))]:undefined,meta,zustand:zustand||null,verlauf:st?undefined:verlauf||null,
-info:{version:'1.46',author:'TheDragonas',persisted},
+info:{version:'1.48',author:'TheDragonas',persisted},
 };
 },
 async loadVerlauf(){return(await req(db.transaction(['cache'],'readonly').objectStore('cache').get('verlauf')))||null;},
@@ -5326,6 +5326,21 @@ this.render(true);this.refreshSel();
 Hist.touchPage(this.pageId);
 Hist.commit(on?'Vor die Zeichnungen':'Hinter die Zeichnungen');
 },
+bgMenuItems(boxes,draws){
+const pics=boxes.filter(b=>this.isPictureBox(b)),texts=boxes.filter(b=>!this.isPictureBox(b));
+const it=(list,one,many,bx,dr)=>{
+if(!list.length)return null;
+const on=list.every(x=>x.bg),n=list.length;
+return{label:(n>1?many:one)+' als Hintergrund'+(n>1?` (${n})`:''),icon:'bgImage',checked:on,action:()=>this.setBackground(!on,bx,dr)};
+};
+const out=[
+it(pics,'Bild','Bilder',pics,[]),
+it(texts,'Text','Texte',texts,[]),
+it(draws,'Zeichnung','Zeichnungen',[],draws),
+].filter(Boolean);
+if(out.length>1){const all=[...boxes,...draws],on=all.every(x=>x.bg);out.push({label:`Alles als Hintergrund (${all.length})`,icon:'bgImage',checked:on,action:()=>this.setBackground(!on,boxes,draws)});}
+return out;
+},
 isLocked(b){if(!b)return true;if(b.locked||b.bg)return true;const k=b.pkg&&this.pkg(b.pkg);return!!(k&&k.locked);},
 nodeOf(id){const b=this.box(id);if(b)return b.pkg||b.id;return this.pkg(id)?id:null;},
 maxZ(){return this.page&&this.page.boxes.length?Math.max(...this.page.boxes.map(b=>b.z)):0;},
@@ -6587,7 +6602,7 @@ marqueeSelect(r,additive){
 const hit=(q)=>q&&q.x<r.x+r.w&&q.x+q.w>r.x&&q.y<r.y+r.h&&q.y+q.h>r.y;
 const ids=[];
 for(const k of this.page.pkgs)if(hit(this.rects.get(k.id)))ids.push(k.id);
-for(const b of this.page.boxes)if(!b.pkg&&!b.bg&&hit(this.rects.get(b.id)))ids.push(b.id);
+for(const b of this.page.boxes)if(!b.pkg&&hit(this.rects.get(b.id)))ids.push(b.id);
 this.select(ids,additive);
 Draw.selectInRect(r);
 },
@@ -6777,7 +6792,7 @@ if(this.pkg(id)){const ms=this.members(id);if(ms.some(m=>m.bg)){kept+=ms.length;
 else if(this.box(id)&&this.box(id).bg)kept++;
 else kill.add(id);
 }
-if(!kill.size){if(drew){Hist.touchPage(this.pageId);Hist.commit('Zeichnung gelöscht');}if(kept)UI.toast('Im Hintergrund verankert – zum Löschen zuerst lösen (Rechtsklick → „… als Hintergrund festlegen“)',3500);return;}
+if(!kill.size){if(drew){Hist.touchPage(this.pageId);Hist.commit('Zeichnung gelöscht');}if(kept)UI.toast('Im Hintergrund verankert – zum Löschen zuerst lösen (Rechtsklick → „… als Hintergrund“)',3500);return;}
 if(p.boxes.some(b=>b.sheet&&kill.has(b.id))&&typeof Sheet!=='undefined')Sheet.bump();
 p.boxes=p.boxes.filter(b=>!kill.has(b.id));
 p.pkgs=p.pkgs.filter(k=>!kill.has(k.id)&&p.boxes.some(b=>b.pkg===k.id));
@@ -6897,7 +6912,7 @@ Hist.commitSoon();
 },
 selectAll(){
 if(!this.page)return;
-this.select([...this.page.pkgs.map(k=>k.id),...this.page.boxes.filter(b=>!b.pkg&&!b.bg).map(b=>b.id)]);
+this.select([...this.page.pkgs.map(k=>k.id),...this.page.boxes.filter(b=>!b.pkg).map(b=>b.id)]);
 Draw.selectAll();
 },
 buildClip(){
@@ -7087,13 +7102,13 @@ p.pkgs=p.pkgs.filter(k=>p.boxes.some(b=>b.pkg===k.id));
 p.links=p.links.filter(l=>(this.box(l.a)||this.pkg(l.a))&&(this.box(l.b)||this.pkg(l.b)));
 if(boxes.length)restack(p.boxes.filter(b=>!!b.bg===on),boxes);
 for(const d of draws){if(on)d.bg=true;else delete d.bg;}
-if(on){this.sel.clear();this.selImg=null;this.selLink=null;Draw.sel.clear();}
+if(on){this.sel=new Set(boxes.map(b=>b.id));this.selImg=null;this.selLink=null;Draw.sel=new Set(draws.map(d=>d.id));Draw.render();}
 this.render(true);
 this.refreshSel();
 Hist.touchPage(this.pageId);
 const n=boxes.length+draws.length;
 Hist.commit(on?'Als Hintergrund festgelegt':'Hintergrund aufgehoben');
-UI.toast(on?`${n===1?'Liegt':`${n} Objekte liegen`} jetzt im Hintergrund und ${n===1?'ist':'sind'} verankert (nicht verschiebbar) – lösen: Rechtsklick → nochmals „… als Hintergrund festlegen“`
+UI.toast(on?`${n===1?'Liegt':`${n} Objekte liegen`} jetzt im Hintergrund und ${n===1?'ist':'sind'} verankert (nicht verschiebbar) – lösen: Rechtsklick → nochmals „… als Hintergrund“`
 :'Wieder ein normales Objekt',on?5000:2200);
 },
 order(front){
@@ -7386,7 +7401,7 @@ this.sel=new Set([b.id]);this.selImg={box:b.id,img:im.id};this.refreshSel();this
 UI.menu([
 {label:'Bild gross anzeigen',icon:'image',action:()=>Backend.imgURL(im.src).then(u=>UI.lightbox(u))},
 {label:'Volle Breite',icon:'sameWidth',disabled:this.isLocked(b),action:()=>{const cw=this.contentW(b);im.h=Math.round(im.h*cw/im.w);im.w=cw;im.x=0;this.render();Hist.touchPage(this.pageId);Hist.commit('Bildgrösse geändert');}},
-this.isPictureBox(b)?{label:'Bild als Hintergrund festlegen',icon:'bgImage',checked:!!b.bg,action:()=>this.setBackground(!b.bg,[b],[])}:null,
+this.isPictureBox(b)?{label:'Bild als Hintergrund',icon:'bgImage',checked:!!b.bg,action:()=>this.setBackground(!b.bg,[b],[])}:null,
 b.bg?null:{label:b.front?'Hinter die Zeichnungen':'Vor die Zeichnungen',icon:b.front?'layerDown':'layerUp',action:()=>this.setFront(!b.front,[b])},
 '-',
 {label:'Bild entfernen',icon:'trash',danger:true,key:'Entf',disabled:this.isLocked(b),action:()=>this.removeImage(b.id,im.id)},
@@ -7422,11 +7437,7 @@ else if(b)items.push({label:'Bild einfügen …',icon:'image',disabled:this.isLo
 if(b&&!b.sheet&&/<table/i.test(b.html))items.push({label:'In Rechentabelle umwandeln (wie Excel)',icon:'table',disabled:this.isLocked(b),action:()=>Sheet.fromHtmlTable(b.id)});
 const bgList=this.selectedBoxes().filter(x=>!x.sheet);
 const bgDraws=Draw.selected();
-if(bgList.length||bgDraws.length){
-const all=[...bgList,...bgDraws],allBg=all.every(x=>x.bg),pics=!bgDraws.length&&bgList.every(x=>this.isPictureBox(x));
-const n=all.length;
-items.push({label:(pics?(n>1?'Bilder als Hintergrund festlegen':'Bild als Hintergrund festlegen'):'Als Hintergrund festlegen')+(n>1?` (${n})`:''),icon:'bgImage',checked:allBg,action:()=>this.setBackground(!allBg,bgList,bgDraws)});
-}
+items.push(...this.bgMenuItems(bgList,bgDraws));
 items.push(
 bgList.length&&bgList.every(x=>x.bg)&&!k?null:{label:locked?'Entsperren':'Sperren',icon:locked?'unlock':'lock',key:'Strg+Umsch+L',action:()=>this.setLock(!locked)},
 multi?{label:'Gruppieren (Paket)',icon:'group',key:'Strg+G',action:()=>this.group()}:null,
@@ -7471,7 +7482,7 @@ const nT=p.boxes.filter(b=>b.sheet).length,nC=p.boxes.filter(b=>b.chart).length,
 left.textContent=`${path}  ·  ${nB} Textfeld${nB===1?'':'er'}${nT?` · ${nT} Tabelle${nT===1?'':'n'}`:''}${nC?` · ${nC} Diagramm${nC===1?'':'e'}`:''} · ${p.pkgs.length} Paket${p.pkgs.length===1?'':'e'} · ${p.links.length} Verbindung${p.links.length===1?'':'en'}${p.drawings.length?` · ${p.drawings.length} Zeichnung${p.drawings.length===1?'':'en'}`:''}`;
 let h;
 if(this.selLink)h='Verbindung: Linie oder Mittelpunkt ziehen = biegen · Endpunkte ziehen = Ansatz verschieben / an anderes Feld hängen · Doppelklick Punkt = zurücksetzen · Entf = löschen';
-else if(this.sel.size===1&&this.box([...this.sel][0])&&this.box([...this.sel][0]).bg)h='Hintergrund ausgewählt – verankert (nicht verschiebbar) · Doppelklick = Textfeld darauf schreiben · Rechtsklick → „… als Hintergrund festlegen“ = lösen, danach verschiebbar';
+else if(this.sel.size===1&&this.box([...this.sel][0])&&this.box([...this.sel][0]).bg)h='Hintergrund ausgewählt – verankert (nicht verschiebbar) · Doppelklick = Textfeld darauf schreiben · Rechtsklick → „… als Hintergrund“ = lösen, danach verschiebbar';
 else if(this.selImg)h='Bild ausgewählt · ziehen = verschieben (Text fliesst herum) · Ecke = Grösse · Entf = entfernen';
 else if(this.sel.size>1)h='Mehrere ausgewählt · Strg+G = zu Paket gruppieren · Rechtsklick ziehen = verbinden';
 else if(this.sel.size===1&&this.box([...this.sel][0])&&this.box([...this.sel][0]).chart)h='Diagramm: Doppelklick = bearbeiten · Zeiger auf die Kurve = Werte ablesen · Klick auf einen Punkt = Zelle in der Tabelle · Ecke = Grösse';
@@ -7973,7 +7984,6 @@ $('#sb-hint').textContent=`${this.sel.size} Zeichnung${this.sel.size===1?'':'en'
 selectInRect(r){
 const ids=[];
 for(const d of Canvas.page.drawings){
-if(d.bg)continue;
 const b=DG.bbox(d);
 if(b.x>=r.x&&b.y>=r.y&&b.x+b.w<=r.x+r.w&&b.y+b.h<=r.y+r.h)ids.push(d.id);
 }
@@ -8276,14 +8286,13 @@ if(d.pts.length<3){this.clearSel();Canvas.clearSel();return true;}
 const poly=d.pts;
 const ids=[];
 for(const dr of p.drawings){
-if(dr.bg)continue;
 const pts=DG.lines(dr).lines.flat();
 const inside=pts.filter(q=>DG.inside(q,poly)).length;
 if(inside>=Math.max(1,pts.length*0.6))ids.push(dr.id);
 }
 const nodes=[];
 for(const k of p.pkgs){const r=Canvas.rects.get(k.id);if(r&&DG.inside(rectCenter(r),poly))nodes.push(k.id);}
-for(const b of p.boxes){if(b.bg||(b.pkg&&nodes.includes(b.pkg)))continue;const r=Canvas.rects.get(b.id);if(r&&DG.inside(rectCenter(r),poly))nodes.push(b.id);}
+for(const b of p.boxes){if(b.pkg&&nodes.includes(b.pkg))continue;const r=Canvas.rects.get(b.id);if(r&&DG.inside(rectCenter(r),poly))nodes.push(b.id);}
 if(!d.additive){Canvas.sel.clear();Canvas.selLink=null;}
 for(const id of nodes)Canvas.sel.add(id);
 Canvas.refreshSel();
@@ -8545,7 +8554,7 @@ nudge(dx,dy){
 for(const d of this.selected())if(!d.bg)DG.map(d,(x,y)=>({x:x+dx,y:y+dy}));
 this.render();
 },
-selectAll(){if(Canvas.page)this.select(Canvas.page.drawings.filter(d=>!d.bg).map(d=>d.id),true);},
+selectAll(){if(Canvas.page)this.select(Canvas.page.drawings.map(d=>d.id),true);},
 recolor(color){
 const list=this.selected();
 if(!list.length)return false;
@@ -8588,8 +8597,7 @@ shapes.length?{colors:[null,'#ffffff','#FFF4C2','#DCEBFF','#DDF3E0','#FDE2E4','#
 '-',
 {label:'Vor den Text',icon:'layerUp',action:()=>this.order(true)},
 {label:'Hinter den Text',icon:'layerDown',action:()=>this.order(false)},
-(()=>{const bx=Canvas.selectedBoxes().filter(b=>!b.sheet),all=[...list,...bx],on=all.length>0&&all.every(o=>o.bg);
-return{label:'Als Hintergrund festlegen'+(all.length>1?` (${all.length})`:''),icon:'bgImage',checked:on,action:()=>Canvas.setBackground(!on,bx,list)};})(),
+...Canvas.bgMenuItems(Canvas.selectedBoxes().filter(b=>!b.sheet),list),
 list.some(d=>d.type==='ink')?{label:'Freihand → Form',icon:'inkShape',action:()=>this.inkToShape()}:null,
 list.some(d=>d.type==='ink')?{label:'Freihand → Text (Beta)',icon:'inkText',action:()=>this.inkToText()}:null,
 list.some(d=>d.type==='ink')?{label:'Fotomath: Rechnung erkennen',icon:'fotomath',action:()=>Fotomath.start()}:null,
@@ -15891,7 +15899,7 @@ if(typeof module!=='undefined')module.exports=Object.assign(module.exports||{},{
 /* ---- js/guide.js ---- */
 'use strict';
 const Guide={
-V:5,
+V:6,
 ORDER:['willkommen','zeichnen','struktur','tabellen','diagramme','rechner','text','tree','formeln','medien','tabs','sichern','tasten'],
 TITLES:{
 willkommen:'Willkommen',zeichnen:'Zeichnen & Formen',struktur:'Seiten, Abschnitte & Notizbücher',tabellen:'Tabellen & Formeln',
@@ -16325,7 +16333,7 @@ p.boxes.push(this.note(0,120,430,this.steps([
 '<b>Bild</b>: hineinziehen, Strg+V oder Einfügen → Bild. Ecke ziehen = Grösse, im Text verschieben wie in Word.',
 '<b>Datei anhängen</b>: hineinziehen oder Einfügen → Datei – erscheint als 📎. Klick = öffnen.',
 '<b>PDF als Seiten</b>: Rechtsklick auf den Anhang → <i>Seiten als Bilder aufklappen</i> – dann darauf schreiben und zeichnen (auch Word/PowerPoint-Bilder).',
-'<b>Als Hintergrund</b>: Rechtsklick auf ein Bild → <i>Bild als Hintergrund festlegen</i> – es bleibt hinten, Auswahl und Lasso überspringen es.',
+'<b>Als Hintergrund</b>: Rechtsklick → <i>Bild / Text / Zeichnung als Hintergrund</i> (bei gemischter Auswahl auch <i>Alles als Hintergrund</i>) – liegt hinten, bleibt auswählbar, ist aber verankert.',
 '<b>Videos</b> (z.B. aus OneNote): Vorschaubild mit ▶ – Klick spielt es ab.',
 'Im Programm (EXE) liegen die Bilder im Ordner <b>_Bilder</b> ihres Abschnitts.',
 ]),'blau'));
