@@ -2261,7 +2261,7 @@ for(const b of data.bilder)assets.set(b.name,await b.blob());
 window.addEventListener('beforeunload',(e)=>{if(be.dirty||(typeof Save!=='undefined'&&Save.hasWork())){e.preventDefault();e.returnValue='';}});
 return{
 session:be.session,groups:data.gruppen,pages:data.seiten,zustand:null,verlauf:null,
-info:{version:'1.42',author:'TheDragonas',datei:{name,erstellt:block.dataset.erstellt||data.erstellt},
+info:{version:'1.43',author:'TheDragonas',datei:{name,erstellt:block.dataset.erstellt||data.erstellt},
 warnung:`Interaktive KnowledgeTree-Datei „${name}“: Änderungen bleiben nur in diesem Fenster, bis du sie mit Datei → Datei speichern als neue Datei herunterlädst. In dein KnowledgeTree übernehmen: dort Datei → Importieren.`},
 };
 },
@@ -2411,7 +2411,7 @@ let persisted=false;
 try{persisted=navigator.storage&&navigator.storage.persist?await navigator.storage.persist():false;}catch(e){}
 return{
 session:myId,groups:groups||[],pages,pageIds:st?[...pageIds(groups,new Set(Object.keys(meta)))]:undefined,meta,zustand:zustand||null,verlauf:st?undefined:verlauf||null,
-info:{version:'1.42',author:'TheDragonas',persisted},
+info:{version:'1.43',author:'TheDragonas',persisted},
 };
 },
 async loadVerlauf(){return(await req(db.transaction(['cache'],'readonly').objectStore('cache').get('verlauf')))||null;},
@@ -5313,7 +5313,7 @@ $('#page-meta').textContent=this.page?fmtDate(this.page.created):'';
 box(id){return this.page?this.page.boxes.find(b=>b.id===id):null;},
 pkg(id){return this.page?this.page.pkgs.find(k=>k.id===id):null;},
 members(pid){return this.page.boxes.filter(b=>b.pkg===pid);},
-isLocked(b){if(!b)return true;if(b.locked)return true;const k=b.pkg&&this.pkg(b.pkg);return!!(k&&k.locked);},
+isLocked(b){if(!b)return true;if(b.locked||b.bg)return true;const k=b.pkg&&this.pkg(b.pkg);return!!(k&&k.locked);},
 nodeOf(id){const b=this.box(id);if(b)return b.pkg||b.id;return this.pkg(id)?id:null;},
 maxZ(){return this.page&&this.page.boxes.length?Math.max(...this.page.boxes.map(b=>b.z)):0;},
 contentW(b){return b.w-2*BORDER-2*PADX;},
@@ -6743,7 +6743,7 @@ if(!this.editing)this.select([b.id]);
 },
 removeImage(boxId,imgId){
 const b=this.box(boxId);
-if(!b)return;
+if(!b||this.isLocked(b))return;
 b.images=b.images.filter(i=>i.id!==imgId);
 this.selImg=null;
 this.render();
@@ -7073,7 +7073,7 @@ this.refreshSel();
 Hist.touchPage(this.pageId);
 const n=boxes.length+draws.length;
 Hist.commit(on?'Als Hintergrund festgelegt':'Hintergrund aufgehoben');
-UI.toast(on?`${n===1?'Liegt':`${n} Objekte liegen`} jetzt im Hintergrund – Auswahlrahmen, Lasso und Strg+A überspringen ${n===1?'es':'sie'}; einzeln anklicken wählt ${n===1?'es':'eines'} aus, Rechtsklick → nochmals = wieder normal`
+UI.toast(on?`${n===1?'Liegt':`${n} Objekte liegen`} jetzt im Hintergrund und ${n===1?'ist':'sind'} verankert (nicht verschiebbar) – lösen: Rechtsklick → nochmals „… als Hintergrund festlegen“`
 :'Wieder ein normales Objekt',on?5000:2200);
 },
 order(front){
@@ -7400,7 +7400,7 @@ const allBg=bgList.every(x=>x.bg),pics=bgList.every(x=>this.isPictureBox(x));
 items.push({label:pics?(bgList.length>1?'Bilder als Hintergrund festlegen':'Bild als Hintergrund festlegen'):'Als Hintergrund festlegen',icon:'bgImage',checked:allBg,action:()=>this.setBackground(!allBg,bgList,[])});
 }
 items.push(
-{label:locked?'Entsperren':'Sperren',icon:locked?'unlock':'lock',key:'Strg+Umsch+L',action:()=>this.setLock(!locked)},
+bgList.length&&bgList.every(x=>x.bg)&&!k?null:{label:locked?'Entsperren':'Sperren',icon:locked?'unlock':'lock',key:'Strg+Umsch+L',action:()=>this.setLock(!locked)},
 multi?{label:'Gruppieren (Paket)',icon:'group',key:'Strg+G',action:()=>this.group()}:null,
 (k||(b&&b.pkg))?{label:'Gruppierung aufheben',icon:'ungroup',key:'Strg+Umsch+G',action:()=>this.ungroup()}:null,
 k&&!d.boxId?{label:'Paket umbenennen …',icon:'pencil',action:()=>this.renamePkg(k.id)}:null,
@@ -7442,7 +7442,7 @@ const nT=p.boxes.filter(b=>b.sheet).length,nC=p.boxes.filter(b=>b.chart).length,
 left.textContent=`${path}  ·  ${nB} Textfeld${nB===1?'':'er'}${nT?` · ${nT} Tabelle${nT===1?'':'n'}`:''}${nC?` · ${nC} Diagramm${nC===1?'':'e'}`:''} · ${p.pkgs.length} Paket${p.pkgs.length===1?'':'e'} · ${p.links.length} Verbindung${p.links.length===1?'':'en'}${p.drawings.length?` · ${p.drawings.length} Zeichnung${p.drawings.length===1?'':'en'}`:''}`;
 let h;
 if(this.selLink)h='Verbindung: Linie oder Mittelpunkt ziehen = biegen · Endpunkte ziehen = Ansatz verschieben / an anderes Feld hängen · Doppelklick Punkt = zurücksetzen · Entf = löschen';
-else if(this.sel.size===1&&this.box([...this.sel][0])&&this.box([...this.sel][0]).bg)h='Hintergrund ausgewählt · ziehen = verschieben · Doppelklick = Textfeld darauf schreiben · Rechtsklick → „… als Hintergrund festlegen“ = wieder normal';
+else if(this.sel.size===1&&this.box([...this.sel][0])&&this.box([...this.sel][0]).bg)h='Hintergrund ausgewählt – verankert (nicht verschiebbar) · Doppelklick = Textfeld darauf schreiben · Rechtsklick → „… als Hintergrund festlegen“ = lösen, danach verschiebbar';
 else if(this.selImg)h='Bild ausgewählt · ziehen = verschieben (Text fliesst herum) · Ecke = Grösse · Entf = entfernen';
 else if(this.sel.size>1)h='Mehrere ausgewählt · Strg+G = zu Paket gruppieren · Rechtsklick ziehen = verbinden';
 else if(this.sel.size===1&&this.box([...this.sel][0])&&this.box([...this.sel][0]).chart)h='Diagramm: Doppelklick = bearbeiten · Zeiger auf die Kurve = Werte ablesen · Klick auf einen Punkt = Zelle in der Tabelle · Ecke = Grösse';
